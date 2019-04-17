@@ -53,10 +53,7 @@ namespace WindGhC
 
             DA.GetDataTree(0, out iGeometry);
             DA.GetData(1, ref iMeshSize);
-
-            List<Point3d> vertexList = new List<Point3d>();
-            string blockVertices = "";
-
+                        
             DataTree<Brep> convertedGeomTree = new DataTree<Brep>();
 
             int x = 0;
@@ -71,6 +68,9 @@ namespace WindGhC
                 }
                 x += 1;
             }
+
+            List<Point3d> vertexList = new List<Point3d>();
+            string blockVertices = "";
 
             Point3d[] edgePoints;
             for(int i = 0; i < 6; i++)
@@ -193,6 +193,7 @@ namespace WindGhC
         public override Guid ComponentGuid
         {
             get { return new Guid("a85917b3-20ad-42f7-bc1c-8a74c69f82b6"); }
-        }
+        }       
+
     }
 }
