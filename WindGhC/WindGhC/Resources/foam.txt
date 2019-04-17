@@ -1,0 +1,62 @@
+#!/bin/sh
+
+#PBS -j oe
+#PBS -N Solver1
+#PBS -l nodes=5:ppn=6
+#PBS -l walltime=1000000:00:00
+###output files
+###PBS -e err.log
+###PBS -o out.log
+###Mail to user
+#PBS -m ae
+#PBS -M andersson@str-ucture.com
+
+cd $PBS_O_WORKDIR
+
+LOGFILE="${PBS_O_WORKDIR}/out.log"
+ERRFILE="${PBS_O_WORKDIR}/err.log"
+NODEFILE="${PBS_O_WORKDIR}/nodes.log"
+
+cat $PBS_NODEFILE >$NODEFILE
+
+export NUM_CPUS=30
+export NUM_NODES=5
+
+#rm -r processor*
+
+# reconfigure decomposition method
+
+sed -i "s/method ptscotch/method scotch/g" system/decomposeParDict
+
+#
+# deompose based on pimpleDyMFsiFoam
+#
+
+sed -i "s/pimpleDyMFoam/pimpleDyMFsiFoam/g" system/controlDict
+echo "Decpompose Start" > timeStamp
+date >> timeStamp
+decomposePar >>$LOGFILE 2>&1
+echo "Decpompose end" >> timeStamp
+date >> timeStamp
+sed -i "s/pimpleDyMFsiFoam/pimpleFoam/g" system/controlDict
+
+#
+# now, run the solver
+#
+
+echo "solver start" >> timeStamp
+date >> timeStamp
+#impirun -machinefile $PBS_NODEFILE -genv I_MPI_DEBUG 4 -genv I_MPI_FABRICS shm:tcp -n $NUM_CPUS pimpleFoam -parallel >>$LOGFILE 2>&1 && \
+mpirun -hostfile $PBS_NODEFILE -n $NUM_CPUS pimpleFoam -parallel >>$LOGFILE 2>&1 && \
+echo "solver end" >> timeStamp
+date >> timeStamp
+
+#echo "reconstruct start" >> timeStamp
+#date >> timeStamp
+#reconstructPar >>$LOGFILE 2>&1 && \
+#echo "reconstruct end" >> timeStamp
+#date >> timeStamp
+
+
+echo "**** FOAM JOB FINISHED *****" >>$LOGFILE
+
