@@ -89,7 +89,7 @@ namespace WindGhC
 
             if (iButton)
             {
-                // Specify names for folders.
+                // Specify names for folders. add some more stuff
                 Brep rhinoBrep = null;
                 GH_Convert.ToBrep(iGeometry.get_Branch(iGeometry.Paths[0])[0], ref rhinoBrep, 0);
 
