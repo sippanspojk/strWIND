@@ -89,9 +89,9 @@ namespace WindGhC
 
             if (iButton)
             {
-                // Specify names for folders.
-                //Brep rhinoBrep = null;
-                //GH_Convert.ToBrep(iGeometry.get_Branch(iGeometry.Paths[0])[0], ref rhinoBrep, 0);
+                // Specify names for folders. add some more stuff
+                Brep rhinoBrep = null;
+                GH_Convert.ToBrep(iGeometry.get_Branch(iGeometry.Paths[0])[0], ref rhinoBrep, 0);
 
                 string openFoamFolder = System.IO.Path.Combine(folderLocation, "OpenFoam_" + iGeometry[0].GetUserString("RotAngle") + "deg");
                 //string openFoamFolder = System.IO.Path.Combine(folderLocation, "OpenFoam_" + rhinoBrep.GetUserString("RotAngle") + "deg");    //new code
