@@ -92,12 +92,12 @@ namespace WindGhC.system
             }
             
             
-            Point3d centerPt = GetCenterPt(convertedGeomTree.AllData());
+            Point3d centerPt = GetCenterPt(convertedGeomTree.AllData().GetRange(6, convertedGeomTree.AllData().Count-6) );
 
             if (iNoPts == 0)
                 iNoPts = 10;
             if (iDist == 0)
-                iDist = 2 * centerPt.Z / 10;
+                iDist = 2*centerPt.Z/10;
             if (iNoCols == 0)
                 iNoCols = 1;
             
@@ -110,7 +110,7 @@ namespace WindGhC.system
             for (int i = 1; i < iNoCols + 1; i++)
             {
                     for (int j = 1; j < iNoPts + 1; j++)                       
-                        windInfoPts.Add(new Point3d(centerPt.X - 5 - iDist * (i-1), centerPt.Y , 2 * centerPt.Z / 10 * j), new GH_Path(i,0));
+                        windInfoPts.Add(new Point3d(centerPt.X - iDist * i, centerPt.Y , iDist*j), new GH_Path(i,0));
             }
 
             if(iNoColsWidth > 0)
@@ -121,8 +121,8 @@ namespace WindGhC.system
                     { 
                         for (int k = 1; k < iNoPts + 1; k++)
                         { 
-                            windInfoPts.Add(new Point3d(centerPt.X - 5 - iDist * (i - 1), centerPt.Y + iDist * j, 2 * centerPt.Z / 10 * k), new GH_Path(i, 2*j-1));
-                            windInfoPts.Add(new Point3d(centerPt.X - 5 - iDist * (i - 1), centerPt.Y - iDist * j, 2 * centerPt.Z / 10 * k), new GH_Path(i, 2*j));
+                            windInfoPts.Add(new Point3d(centerPt.X - iDist * i, centerPt.Y + iDist * j, iDist * k), new GH_Path(i, 2*j-1));
+                            windInfoPts.Add(new Point3d(centerPt.X - iDist * i, centerPt.Y - iDist * j, iDist * k), new GH_Path(i, 2*j));
                         }
                     }
                 }
