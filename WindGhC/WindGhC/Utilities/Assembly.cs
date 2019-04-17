@@ -59,7 +59,6 @@ namespace WindGhC
         {
             string iPath = "";
             bool iButton = false;
-            //GH_Structure<GH_Brep> iGeometry;        //I don't need to write "= new GH_Structure<GH_Brep>();" since it is associated with an out keyword in DA.GetDataTree(...) 
             var iGeometry = new List<Brep>();
             var iConstantFolder = new List<TextFile>();
             var iSystemFolder = new List<TextFile>();
@@ -89,12 +88,9 @@ namespace WindGhC
 
             if (iButton)
             {
-                // Specify names for folders. add some more stuff
-                //Brep rhinoBrep = null;
-                //GH_Convert.ToBrep(iGeometry.get_Branch(iGeometry.Paths[0])[0], ref rhinoBrep, 0);
+                // Specify names for folders
 
                 string openFoamFolder = System.IO.Path.Combine(folderLocation, "OpenFoam_" + iGeometry[0].GetUserString("RotAngle") + "deg");
-                //string openFoamFolder = System.IO.Path.Combine(folderLocation, "OpenFoam_" + rhinoBrep.GetUserString("RotAngle") + "deg");    //new code
 
                 string constantPath = System.IO.Path.Combine(openFoamFolder, "constant");
                 string systemPath = System.IO.Path.Combine(openFoamFolder, "system");
@@ -122,19 +118,6 @@ namespace WindGhC
                 // Export .stl's
                 foreach (var geom in iGeometry)                                       
                 ExportStl(geom, triSurfacePath + geom.GetUserString("Name"));
-
-                /*foreach (GH_Path path in iGeometry.Paths)
-                {
-                    List<Brep> convertedBrepList = new List<Brep>();
-                    foreach (var element in iGeometry.get_Branch(path))
-                    {
-                        Brep convertedBrep = null;
-                        GH_Convert.ToBrep(element, ref convertedBrep, 0);
-                        convertedBrepList.Add(convertedBrep);
-                    }
-                    ExportStl(convertedBrepList, triSurfacePath + convertedBrepList[0].GetUserString("Name"));
-                }*/
-
 
                 // Write static text files.
                 File.WriteAllText(System.IO.Path.Combine(openFoamFolder, "foam.job"), StaticTextFiles.GetFoam());
