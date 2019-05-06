@@ -153,8 +153,8 @@ namespace WindGhC.system
                     "       name windInfo_1;\n" +
 
                     "       // Write at same frequency as fields\n" +
-                    "       outputControl timeStep;\n" +
-                    "       outputInterval  1;\n" +
+                    "       writeControl timeStep;\n" +
+                    "       writeInterval  1;\n" +
 
                     "       // Fields to be probed\n" +
                     "       fields\n" +

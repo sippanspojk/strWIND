@@ -135,7 +135,7 @@ namespace WindGhC
                 "writeInterval {5};\n\r" +
                 "writeFormat binary;\n\r" +
                 "writePrecision 7;\n\r" +
-                "writeCompression compressed;\n\r" +
+                "//writeCompression compressed;\n\r" +
                 "timeFormat general;\n\r" +
                 "timePrecision 5;\n\r" +
                 "runTimeModifiable yes;\n\r" +
@@ -149,9 +149,10 @@ namespace WindGhC
                 "libs\n" +
                 "(\n" +
                 "    \"libOpenFOAM.so\"\n" +
-                "    \"libincompressibleTurbulenceModel.so\"\n" +
-                "    \"libincompressibleRASModels.so\"\n" +
-                "    \"libincompressibleLESModels.so\"\n" +
+                "    \"libincompressibleTurbulenceModels.so\"\n" +
+                "    //\"libincompressibleTurbulenceModel.so\" FOR OLDER OpenFOAM versions\n" +
+                "    //\"libincompressibleRASModels.so\" FOR OLDER OpenFOAM versions\n" +
+                "    //\"libincompressibleLESModels.so\" FOR OLDER OpenFOAM versions\n" +
                 ");\n" +
                 "functions\n" +
                 "{{\n" +

@@ -143,7 +143,7 @@ namespace WindGhC
                 File.WriteAllText(System.IO.Path.Combine(openFoamFolder, "foam.job"), StaticTextFiles.GetFoam());
                 File.WriteAllText(System.IO.Path.Combine(openFoamFolder, "mesh.job"), StaticTextFiles.GetMesh());
 
-                File.WriteAllText(System.IO.Path.Combine(constantPath, "LESProperties"), StaticTextFiles.GetLESProperties());
+                //File.WriteAllText(System.IO.Path.Combine(constantPath, "LESProperties"), StaticTextFiles.GetLESProperties());
                 File.WriteAllText(System.IO.Path.Combine(constantPath, "RASProperties"), StaticTextFiles.GetRASProperties());
                 File.WriteAllText(System.IO.Path.Combine(constantPath, "transportProperties"), StaticTextFiles.GetTransportProperties());
                 File.WriteAllText(System.IO.Path.Combine(constantPath, "turbulenceProperties"), StaticTextFiles.GetTurbulenceProperties());
@@ -155,7 +155,7 @@ namespace WindGhC
                 File.WriteAllText(System.IO.Path.Combine(systemPath, "forces"), StaticTextFiles.GetForcesFunction(tempGeomList));
 
                 File.WriteAllText(System.IO.Path.Combine(zeroPath, "p"), StaticTextFiles.GetP(tempGeomList));
-                File.WriteAllText(System.IO.Path.Combine(zeroPath, "nuSgs"), StaticTextFiles.GetNuSgs(tempGeomList));
+                File.WriteAllText(System.IO.Path.Combine(zeroPath, "nut"), StaticTextFiles.GetNut(tempGeomList));
                 File.WriteAllText(System.IO.Path.Combine(zeroPath, "nuTilda"), StaticTextFiles.GetNuTilda(tempGeomList));
             }
             

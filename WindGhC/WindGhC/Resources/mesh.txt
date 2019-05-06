@@ -48,8 +48,8 @@ sed -i "s/pimpleDyMFsiFoam/pimpleFoam/g" system/controlDict
 
 echo "mesh start" >> timeStamp
 date >> timeStamp
-#impirun -machinefile $PBS_NODEFILE -genv I_MPI_DEBUG 4 -genv I_MPI_FABRICS shm:tcp -n $NUM_CPUS snappyHexMesh -parallel >>$LOGFILE 2>&1 && \
-mpirun -hostfile $PBS_NODEFILE -n $NUM_CPUS snappyHexMesh -parallel >>$LOGFILE 2>&1 && \
+#mpirun -hostfile $PBS_NODEFILE -n $NUM_CPUS snappyHexMesh -parallel >>$LOGFILE 2>&1 && \	for OpenFOAM v2.3
+mpirun -np $NUM_CPUS -hostfile $PBS_NODEFILE -mca pml ucx snappyHexMesh -parallel >>$LOGFILE 2>&1 && \
 echo "mesh end" >> timeStamp
 date >> timeStamp
 echo "reconstruct start" >> timeStamp

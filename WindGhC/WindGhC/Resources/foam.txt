@@ -46,7 +46,6 @@ sed -i "s/pimpleDyMFsiFoam/pimpleFoam/g" system/controlDict
 
 echo "solver start" >> timeStamp
 date >> timeStamp
-#impirun -machinefile $PBS_NODEFILE -genv I_MPI_DEBUG 4 -genv I_MPI_FABRICS shm:tcp -n $NUM_CPUS pimpleFoam -parallel >>$LOGFILE 2>&1 && \
 mpirun -hostfile $PBS_NODEFILE -n $NUM_CPUS pimpleFoam -parallel >>$LOGFILE 2>&1 && \
 echo "solver end" >> timeStamp
 date >> timeStamp

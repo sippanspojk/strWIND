@@ -128,13 +128,13 @@ namespace WindGhC
             return string.Format(shellString, patchInsert);
         }
 
-        public static string GetNuSgs(List<Brep> iGeometry)
+        public static string GetNut(List<Brep> iGeometry)
         {
-            string nuSgsInsert = "";
+            string nutInsert = "";
 
             for (int i = 6; i < iGeometry.Count; i++)
             {
-                nuSgsInsert += "   " + iGeometry[i].GetUserString("Name") + "\n" +
+                nutInsert += "   " + iGeometry[i].GetUserString("Name") + "\n" +
                     "    {\n" +
                     "        type           nutUSpaldingWallFunction;\n" +
                     "        value          $internalField;\n" +
@@ -202,7 +202,7 @@ namespace WindGhC
                 "{0}\n" +
                 "}}";
 
-            return string.Format(shellString, nuSgsInsert);
+            return string.Format(shellString, nutInsert);
 
         }
 
@@ -365,8 +365,8 @@ namespace WindGhC
                         "{\n" +
                         "   type                forces;\n" +
                         "   functionObjectLibs  (\"libforces.so\");\n" +
-                        "   outputControl       timeStep;   //'timeStep' or 'outputTime'\n" +
-                        "   outputInterval      1;\n" +
+                        "   writeControl        timeStep;   //'timeStep' or 'outputTime'\n" +
+                        "   writeInterval       1;\n" +
                         "   name                forces_" + brepName +
                         "   \n" +
                         "   log                 yes;\n" +
@@ -412,8 +412,8 @@ namespace WindGhC
                     "{{\n" +
                     "   type                forces;\n" +
                     "   functionObjectLibs  (\"libforces.so\");\n" +
-                    "   outputControl       timeStep;   //'timeStep' or 'outputTime'\n" +
-                    "   outputInterval      1;\n" +
+                    "   writeControl        timeStep;   //'timeStep' or 'outputTime'\n" +
+                    "   writeInterval       1;\n" +
                     "   name                forces_SK_All\n" +
                     "\n" +
                     "   log                 yes;\n" +
@@ -425,7 +425,8 @@ namespace WindGhC
                     "   //pName               p;\n" +
                     "   //UName               U;\n" +
                     "   log                 true;\n" +
-                    "   rhoName             rhoInf;\n" +
+                    "   //rhoName             rhoInf;\n" +
+                    "   rho                 rhoInf;\n" +
                     "   rhoInf              1.20;\n" +
                     "   CofR                ({2});\n" +
                     "   //liftDir             ( 0 0 1 );\n" +
