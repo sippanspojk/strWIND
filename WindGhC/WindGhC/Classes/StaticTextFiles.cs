@@ -375,7 +375,8 @@ namespace WindGhC
                         "   //pName               p;\n" +
                         "   //UName               U;\n" +
                         "   log                 true;\n" +
-                        "   rhoName             rhoInf;\n" +
+                        "   //rhoName             rhoInf;\n" +
+                        "   rho             rhoInf;\n" +
                         "   rhoInf              1.18;\n" +
                         "   CofR                (" + CofR + ");\n" +
                         "   //liftDir             ( 0 0 1 );\n" +
