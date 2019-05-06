@@ -92,8 +92,8 @@ namespace WindGhC.system
 
                     "   type                surfaces;\n" +
                     "   functionObjectLibs  (\"libsampling.so\");\n" +
-                    "   outputControl       timeStep;   //'timeStep' or 'outputTime'\n" +
-                    "   outputInterval      1;\n" +
+                    "   writeControl       timeStep;   //'timeStep' or 'outputTime'\n" +
+                    "   writeInterval      1;\n" +
                     "\n" +
                     "   surfaceFormat       vtk;\n" +
                     "   fields              (p U);\n" +
