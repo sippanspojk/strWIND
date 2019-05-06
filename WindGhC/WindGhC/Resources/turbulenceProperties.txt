@@ -20,6 +20,7 @@ simulationType LES;
 LES
 {
 	LESModel            SpalartAllmarasIDDES;
+	turbulence          on;
 	//delta               vanDriest;
 	delta				IDDESDelta;
 	printCoeffs         on;
