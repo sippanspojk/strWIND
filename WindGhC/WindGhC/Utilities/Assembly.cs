@@ -69,7 +69,7 @@ namespace WindGhC
             DA.GetDataTree(2, out iGeometry);
             DA.GetDataList(3, iConstantFolder);
             DA.GetDataList(4, iSystemFolder);
-            DA.GetDataList(5, iZeroFolder);
+            DA.GetDataList(5, iZeroFolder); 
 
 
             DataTree<Brep> convertedGeomTree = new DataTree<Brep>();
@@ -104,7 +104,7 @@ namespace WindGhC
             {
                 // Specify names for folders. add some more stuff
 
-                string openFoamFolder = System.IO.Path.Combine(folderLocation, "OpenFoam_" + convertedGeomTree.Branch(0)[0].GetUserString("RotAngle") + "deg");
+                string openFoamFolder = System.IO.Path.Combine(folderLocation, convertedGeomTree.Branch(0)[0].GetUserString("RotAngle") + "deg");
 
                 string constantPath = System.IO.Path.Combine(openFoamFolder, "constant");
                 string systemPath = System.IO.Path.Combine(openFoamFolder, "system");
