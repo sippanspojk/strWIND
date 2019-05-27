@@ -1,0 +1,10 @@
+{
+  "version": "0.2.1",
+  "tasks": [
+    {
+      "taskName": "task-Geometry",
+      "appliesTo": "WindGhC/Utilities/Geometry.cs",
+      "type": "launch"
+    }
+  ]
+}

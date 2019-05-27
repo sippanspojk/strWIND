@@ -1,8 +1,10 @@
-﻿ using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Grasshopper;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Data;
+using Grasshopper.Kernel.Types;
 using Rhino.Geometry;
 
 namespace WindGhC
@@ -30,7 +32,7 @@ namespace WindGhC
 
 
 
-            pManager.AddGeometryParameter("Geometry", "G", "Reference geometry from Rhino.", GH_ParamAccess.list);
+            pManager.AddGeometryParameter("Geometry", "G", "Reference geometry from Rhino.", GH_ParamAccess.tree);
             pManager.AddNumberParameter("Angle", "A", "Rotation angle in degrees.", GH_ParamAccess.item, 0.0);
             pManager.AddTextParameter("Patch Names", "N", "Input names of the geometry patches as a string list.", GH_ParamAccess.list);
             pManager.AddIntegerParameter("Refinement Level", "R", "Input refinement of the geometry patches as a list.", GH_ParamAccess.list);
@@ -45,7 +47,7 @@ namespace WindGhC
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddBrepParameter("Geometry", "G", "Assembled geometry", GH_ParamAccess.list);
+            pManager.AddBrepParameter("Geometry", "G", "Assembled geometry", GH_ParamAccess.tree);
         }
 
         /// <summary>
@@ -54,7 +56,7 @@ namespace WindGhC
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            List<Brep> iGeometry = new List<Brep>();
+            GH_Structure<IGH_GeometricGoo> iGeometry;
             double iAngle = 0.0;
             List<String> iNameGeom = new List<String>();
             List<int> iRefLvlGeom = new List<int>();
@@ -62,7 +64,7 @@ namespace WindGhC
             double iY = 0.0;
             double iZ = 0.0;
             
-            DA.GetDataList(0, iGeometry);
+            DA.GetDataTree(0, out iGeometry);
             DA.GetData(1, ref iAngle);
             DA.GetDataList(2, iNameGeom);
             DA.GetDataList(3, iRefLvlGeom);
@@ -70,18 +72,36 @@ namespace WindGhC
             DA.GetData(5, ref iY);
             DA.GetData(6, ref iZ);
 
-            Point3d centerPt = GetCenterPt(iGeometry);
 
-            foreach (var brep in iGeometry)
+            DataTree<Brep> convertedGeomTree = new DataTree<Brep>();
+
+            int i = 0;
+            Brep convertedBrep = null;
+            foreach (GH_Path path in iGeometry.Paths)
             {
-                brep.Rotate(iAngle * Math.PI / 180, Vector3d.ZAxis, centerPt);
+                foreach (var geom in iGeometry.get_Branch(path))
+                {
+                    GH_Convert.ToBrep(geom, ref convertedBrep, 0);
+                    convertedGeomTree.Add(convertedBrep, new GH_Path(i));
+                    convertedBrep = null;
+                }
+                i += 1;
             }
 
-            centerPt = GetCenterPt(iGeometry);
+            Point3d centerPt = GetCenterPt(convertedGeomTree.AllData());
+
+            foreach (GH_Path path in convertedGeomTree.Paths)
+            {
+                foreach (var brep in convertedGeomTree.Branch(path))
+                    brep.Rotate(iAngle * Math.PI / 180, Vector3d.ZAxis, centerPt);
+                
+            }
+
+            centerPt = GetCenterPt(convertedGeomTree.AllData());
                         
-            double height = GetHeight(iGeometry);
-            double width = GetWidth(iGeometry);
-            double depth = GetDepth(iGeometry);
+            double height = GetHeight(convertedGeomTree.AllData());
+            double width = GetWidth(convertedGeomTree.AllData());
+            double depth = GetDepth(convertedGeomTree.AllData());
 
             if (iX[0] * height < 2.5 * depth || iX[1] * height < 1.5 * depth)
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "The depth of the wind tunnel is too small, please specity a bigger number.");
@@ -92,7 +112,8 @@ namespace WindGhC
             if (iZ < 2.0 * height)
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "The hight of the wind tunnel is too small, please specity a bigger number.");
 
-            List<Point3d> cornerPoints = new List<Point3d>{
+            List<Point3d> cornerPoints = new List<Point3d>
+            {
                 new Point3d(centerPt.X - iX[0], centerPt.Y - iY / 2, centerPt.Z),
                 new Point3d(centerPt.X + iX[1], centerPt.Y - iY / 2, centerPt.Z),               
                 new Point3d(centerPt.X + iX[1], centerPt.Y + iY / 2, centerPt.Z),
@@ -124,30 +145,36 @@ namespace WindGhC
                 "TOP"
             };
                         
-            List<Brep> geometryList = new List<Brep>();
+            DataTree<Brep> geometryList = new DataTree<Brep>();
 
-            int i = 0;
+            i = 0;
+            int j = 0;
             foreach (var surface in surfaceList)
             {
                 surface.SetUserString("Name", nameList[i]);
                 surface.SetUserString("RefLvl", "0");
                 surface.SetUserString("RotAngle", iAngle.ToString());
-                geometryList.Add(surface);
+                geometryList.Add(surface,new GH_Path(j));
                 i++;
+                j++;
             };
 
             i = 0;
-            foreach (var brep in iGeometry)
-            {                
-                brep.SetUserString("Name", iNameGeom[i]);
-                brep.SetUserString("RefLvl", iRefLvlGeom[i].ToString());
-                brep.SetUserString("RotAngle", iAngle.ToString());
-                geometryList.Add(brep);
+            foreach (GH_Path path in convertedGeomTree.Paths)
+            {
+                foreach (var brep in convertedGeomTree.Branch(path))
+                {
+                    brep.SetUserString("Name", iNameGeom[i]);
+                    brep.SetUserString("RefLvl", iRefLvlGeom[i].ToString());
+                    brep.SetUserString("RotAngle", iAngle.ToString());
+                    geometryList.Add(brep,new GH_Path(j));
+                }
                 i++;
+                j++;
             }
 
 
-            DA.SetDataList(0, geometryList);
+            DA.SetDataTree(0, geometryList);
         }
 
         /// <summary>

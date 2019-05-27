@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 
+using Grasshopper;
 using Grasshopper.Kernel;
+using Grasshopper.Kernel.Data;
+using Grasshopper.Kernel.Types;
 using Rhino.Geometry;
 
 namespace WindGhC
@@ -26,7 +29,7 @@ namespace WindGhC
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddBrepParameter("Geometry", "G", "Geometry.", GH_ParamAccess.list);
+            pManager.AddBrepParameter("Geometry", "G", "Geometry.", GH_ParamAccess.tree);
             pManager.AddVectorParameter("Internal field vector", "V", "Insert a vector representing the internal field velocity.", GH_ParamAccess.item,Vector3d.XAxis);
             pManager.AddVectorParameter("Inlet velocity", "U", "Insert a vector representing the inlet velocity.", GH_ParamAccess.item, Vector3d.XAxis);
 
@@ -46,35 +49,52 @@ namespace WindGhC
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            List<Brep> iGeometry = new List<Brep>();
+            GH_Structure<GH_Brep> iGeometry;
             Vector3d iVelocityVec = new Vector3d(0, 0, 0);
             Vector3d iInletVec = new Vector3d(0, 0, 0);
 
-            DA.GetDataList(0, iGeometry);
+            DA.GetDataTree(0, out iGeometry);
             DA.GetData(1, ref iVelocityVec);
             DA.GetData(2, ref iInletVec);
 
-            iGeometry[0].SetUserString("BC", iInletVec.ToString().Replace(",", " "));
-            string geomInsert = "";
+            DataTree<Brep> convertedGeomTree = new DataTree<Brep>();
 
-            
-            for (int i = 6; i < iGeometry.Count; i++)
+            int x = 0;
+            Brep convertedBrep = null;
+            foreach (GH_Path path in iGeometry.Paths)
             {
-                geomInsert += "   " + iGeometry[i].GetUserString("Name") + "\n" +
-                    "    {\n" +
-                    "        type           fixedValue;\n" +
-                    "        value          uniform (0 0 0);\n" + 
-                    "    }\n" +
-                    "\n";
-
+                foreach (var geom in iGeometry.get_Branch(path))
+                {
+                    GH_Convert.ToBrep(geom, ref convertedBrep, 0);
+                    convertedGeomTree.Add(convertedBrep, new GH_Path(x));
+                    convertedBrep = null;
+                }
+                x += 1;
             }
 
-            
+            convertedGeomTree.Branch(0)[0].SetUserString("BC", iInletVec.ToString().Replace(",", " "));
+
+
+
+            string geomInsert = "";
+            for(int i = 6; i < convertedGeomTree.Paths.Count; i++)
+            {
+                GH_Path path = convertedGeomTree.Path(i);
+                geomInsert += "   " + convertedGeomTree.Branch(path)[0].GetUserString("Name") + "\n" +
+                "    {\n" +
+                "        type           fixedValue;\n" +
+                "        value          uniform (0 0 0);\n" +
+                "    }\n" +
+                "\n";
+            }
+
+
+            #region shellString
             string shellString = 
                 "/*--------------------------------*- C++ -*----------------------------------*\\\n" +
                 "| =========                 |                                                 |\n" +
                 "| \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |\n" +
-                "|  \\\\    /   O peration     | Version:  2.2.0                                 |\n" +
+                "|  \\\\    /   O peration     |                                                 |\n" +
                 "|   \\\\  /    A nd           | Web:      www.OpenFOAM.org                      |\n" +
                 "|    \\\\/     M anipulation  |                                                 |\n" +
                 "\\*---------------------------------------------------------------------------*/\n" +
@@ -132,7 +152,8 @@ namespace WindGhC
 
                 "{0}\n" +
                 "}}";
-             
+            #endregion
+
             string oVelocityString = string.Format(shellString, geomInsert);
 
             var oVelocityTextFile = new TextFile(oVelocityString, "U");

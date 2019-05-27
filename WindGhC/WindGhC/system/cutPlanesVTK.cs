@@ -83,7 +83,7 @@ namespace WindGhC.system
                    "/*--------------------------------*- C++ -*----------------------------------*\\\n" +
                   "| =========                 |                                                 |\n" +
                   "| \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |\n" +
-                  "|  \\\\    /   O peration     | Version:  2.2.0                                 |\n" +
+                  "|  \\\\    /   O peration     |                                                 |\n" +
                   "|   \\\\  /    A nd           | Web:      www.OpenFOAM.org                      |\n" +
                   "|    \\\\/     M anipulation  |                                                 |\n" +
                   "\\*---------------------------------------------------------------------------*/\n" +
@@ -92,8 +92,8 @@ namespace WindGhC.system
 
                     "   type                surfaces;\n" +
                     "   functionObjectLibs  (\"libsampling.so\");\n" +
-                    "   outputControl       timeStep;   //'timeStep' or 'outputTime'\n" +
-                    "   outputInterval      1;\n" +
+                    "   writeControl       timeStep;   //'timeStep' or 'outputTime'\n" +
+                    "   writeInterval      1;\n" +
                     "\n" +
                     "   surfaceFormat       vtk;\n" +
                     "   fields              (p U);\n" +

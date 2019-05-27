@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Grasshopper;
 using Grasshopper.Kernel;
+using Grasshopper.Kernel.Data;
+using Grasshopper.Kernel.Types;
 using Rhino.Geometry;
 
 namespace WindGhC
@@ -26,7 +29,7 @@ namespace WindGhC
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddGeometryParameter("Geometry", "G", "Input all geometry to generate the bounding block mesh.", GH_ParamAccess.list);
+            pManager.AddGeometryParameter("Geometry", "G", "Input all geometry to generate the bounding block mesh.", GH_ParamAccess.tree);
             pManager.AddIntegerParameter("MeshSize", "M", "Specify the size of the block mesh [m].", GH_ParamAccess.item,10);
         }
 
@@ -45,21 +48,34 @@ namespace WindGhC
         protected override void SolveInstance(IGH_DataAccess DA)
         {
 
-            List<Brep> iGeometry = new List<Brep>();
+            GH_Structure<IGH_GeometricGoo> iGeometry;
             int iMeshSize = 0;
 
-            DA.GetDataList(0, iGeometry);
+            DA.GetDataTree(0, out iGeometry);
             DA.GetData(1, ref iMeshSize);
+                        
+            DataTree<Brep> convertedGeomTree = new DataTree<Brep>();
+
+            int x = 0;
+            Brep convertedBrep = null;
+            foreach (GH_Path path in iGeometry.Paths)
+            {
+                foreach (var geom in iGeometry.get_Branch(path))
+                {
+                    GH_Convert.ToBrep(geom, ref convertedBrep, 0);
+                    convertedGeomTree.Add(convertedBrep, new GH_Path(x));
+                    convertedBrep = null;
+                }
+                x += 1;
+            }
 
             List<Point3d> vertexList = new List<Point3d>();
             string blockVertices = "";
 
-
-
             Point3d[] edgePoints;
             for(int i = 0; i < 6; i++)
             {
-                foreach (var edge in iGeometry[i].Edges)
+                foreach (var edge in convertedGeomTree.Branch(i)[0].Edges)
                 {
                     edge.DivideByCount(Convert.ToInt32(edge.GetLength()), true, out edgePoints);
                     foreach (var point in edgePoints)
@@ -114,7 +130,7 @@ namespace WindGhC
               ("/*--------------------------------*- C++ -*----------------------------------*\\\n" +
               "| =========                 |                                                 |\n" +
               "| \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |\n" +
-              "|  \\\\    /   O peration     | Version:  2.2.0                                 |\n" +
+              "|  \\\\    /   O peration     |                                                 |\n" +
               "|   \\\\  /    A nd           | Web:      www.OpenFOAM.org                      |\n" +
               "|    \\\\/     M anipulation  |                                                 |\n" +
               "\\*---------------------------------------------------------------------------*/\n" +
@@ -177,6 +193,7 @@ namespace WindGhC
         public override Guid ComponentGuid
         {
             get { return new Guid("a85917b3-20ad-42f7-bc1c-8a74c69f82b6"); }
-        }
+        }       
+
     }
 }

@@ -36,7 +36,7 @@ namespace WindGhC
         /// Registers all the input parameters for this component.
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddBrepParameter("Geometry", "G", "Plug in geometry component as a tree.", GH_ParamAccess.list);
+            pManager.AddBrepParameter("Geometry", "G", "Plug in geometry component as a tree.", GH_ParamAccess.tree);
             pManager.AddBrepParameter("Refinement Boxes", "R", "Plug in refinementBoxes component as a tree.", GH_ParamAccess.list);
             pManager.AddPointParameter("Location in mesh", "L", "Insert a point that is located within the mesh.", GH_ParamAccess.item);
             pManager.AddIntegerParameter("no Cells between levels", "C", "Insert the number cell divisions you want to use between to refinement levels", GH_ParamAccess.item,2);
@@ -57,13 +57,13 @@ namespace WindGhC
         protected override void SolveInstance(IGH_DataAccess DA)
         {
 
-            List<Brep> iGeometry = new List<Brep>();
+            GH_Structure<GH_Brep> iGeometry;
             List<Brep> iRefBoxes = new List<Brep>();
             Point3d iLocationInMesh = new Point3d();
             int iCellsBetweenLvls = 0;
             
             
-            DA.GetDataList(0, iGeometry);
+            DA.GetDataTree(0, out iGeometry);
             DA.GetDataList(1, iRefBoxes);
             if (!DA.GetData(2, ref iLocationInMesh))
             {
@@ -72,26 +72,41 @@ namespace WindGhC
             }
             DA.GetData(3, ref iCellsBetweenLvls);
 
-                        
+
+            DataTree<Brep> convertedGeomTree = new DataTree<Brep>();
+
+            int x = 0;
+            Brep convertedBrep = null;
+            foreach (GH_Path path in iGeometry.Paths)
+            {
+                foreach (var geom in iGeometry.get_Branch(path))
+                {
+                    GH_Convert.ToBrep(geom, ref convertedBrep, 0);
+                    convertedGeomTree.Add(convertedBrep, new GH_Path(x));
+                    convertedBrep = null;
+                }
+                x += 1;
+            }
+
             string geomInsert = "";
             string geomRefInsert = "";
-            foreach (var surface in iGeometry)
+            foreach (GH_Path path in convertedGeomTree.Paths)
             {
-                geomInsert += " " + surface.GetUserString("Name") + ".stl\n" +
-                  "   {\n" +
-                  "       name " + surface.GetUserString("Name") + ";\n" +
-                  "       type triSurfaceMesh;\n" +
-                  "   }\n";
+                geomInsert += " " + convertedGeomTree.Branch(path)[0].GetUserString("Name") + ".stl\n" +
+                    "   {\n" +
+                    "       name " + convertedGeomTree.Branch(path)[0].GetUserString("Name") + ";\n" +
+                    "       type triSurfaceMesh;\n" +
+                    "   }\n";
 
-                geomRefInsert += "  " + surface.GetUserString("Name") + "\n" +
-                  "   {\n" +
-                  "       level\n" +
-                  "       (\n" +
-                  "         " + surface.GetUserString("RefLvl") + "\n" +
-                  "         " + surface.GetUserString("RefLvl") + "\n" +
-                  "       );\n" +
-                  "       gapLevelIncrement 0;\n" +
-                  "   }\n";
+                geomRefInsert += "  " + convertedGeomTree.Branch(path)[0].GetUserString("Name") + "\n" +
+                    "   {\n" +
+                    "       level\n" +
+                    "       (\n" +
+                    "         " + convertedGeomTree.Branch(path)[0].GetUserString("RefLvl") + "\n" +
+                    "         " + convertedGeomTree.Branch(path)[0].GetUserString("RefLvl") + "\n" +
+                    "       );\n" +
+                    "       gapLevelIncrement 0;\n" +
+                    "   }\n";
             }
 
 
@@ -125,11 +140,11 @@ namespace WindGhC
             }
 
             string eMeshString = "";
-            foreach (var brep in iGeometry)
+            foreach (GH_Path path in convertedGeomTree.Paths)
             {
                 eMeshString +=
                 "       {\n" +
-                "         file \"" + brep.GetUserString("Name") + ".eMesh\";\n" +
+                "         file \"" + convertedGeomTree.Branch(path)[0].GetUserString("Name") + ".eMesh\";\n" +
                 "         level 1;\n" +
                 "       }\n\r";
 
@@ -141,7 +156,7 @@ namespace WindGhC
               "/*--------------------------------*- C++ -*----------------------------------*\\\n" +
               "| =========                 |                                                 |\n" +
               "| \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |\n" +
-              "|  \\\\    /   O peration     | Version:  2.2.0                                 |\n" +
+              "|  \\\\    /   O peration     |                                                 |\n" +
               "|   \\\\  /    A nd           | Web:      www.OpenFOAM.org                      |\n" +
               "|    \\\\/     M anipulation  |                                                 |\n" +
               "\\*---------------------------------------------------------------------------*/\n" +
@@ -289,9 +304,7 @@ namespace WindGhC
               "mergeTolerance 1e-07;";
             #endregion
 
-
-
-            string snappyHexMeshDict = string.Format(shellString, geomInsert, refBoxInsert, iCellsBetweenLvls, iGeometry.Count.ToString(), eMeshString, geomRefInsert, refBoxLvlInsert, locationInMesh);
+            string snappyHexMeshDict = string.Format(shellString, geomInsert, refBoxInsert, iCellsBetweenLvls, convertedGeomTree.Branches.Count.ToString(), eMeshString, geomRefInsert, refBoxLvlInsert, locationInMesh);
 
             var oSnappyTextFile = new TextFile(snappyHexMeshDict, "snappyHexMeshDict");
                         

@@ -51,3 +51,7 @@ FoamFile
         default         no;
         p               ;
     }
+	wallDist
+    {
+		method meshWave;
+    }
