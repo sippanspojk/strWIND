@@ -3,9 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Grasshopper;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Data;
+using Grasshopper.Kernel.Types;
 using Rhino.Geometry;
+
 
 namespace WindGhC
 {
@@ -348,16 +351,16 @@ namespace WindGhC
         }
 
         public static string GetForcesFunction(List<Brep> iGeometry)
-        {
+        {           
             string forcesString = "";
 
             for (int i = 6; i < iGeometry.Count; i++)
             {
                 string brepName = iGeometry[i].GetUserString("Name").ToString();
 
-                string CofR_X = VolumeMassProperties.Compute(iGeometry[i]).Centroid.X.ToString();
-                string CofR_Y = VolumeMassProperties.Compute(iGeometry[i]).Centroid.Y.ToString();
-                string CofR_Z = VolumeMassProperties.Compute(iGeometry[i]).Centroid.Z.ToString();
+                string CofR_X = VolumeMassProperties.Compute(iGeometry[i].CapPlanarHoles(0.1)).Centroid.X.ToString();
+                string CofR_Y = VolumeMassProperties.Compute(iGeometry[i].CapPlanarHoles(0.1)).Centroid.Y.ToString();
+                string CofR_Z = VolumeMassProperties.Compute(iGeometry[i].CapPlanarHoles(0.1)).Centroid.Z.ToString();
                 string CofR = CofR_X + " " + CofR_Y + " " + CofR_Z;
 
                 forcesString +=

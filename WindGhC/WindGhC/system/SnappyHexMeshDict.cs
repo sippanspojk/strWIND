@@ -37,7 +37,7 @@ namespace WindGhC
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddBrepParameter("Geometry", "G", "Plug in geometry component as a tree.", GH_ParamAccess.tree);
-            pManager.AddBrepParameter("Refinement Boxes", "R", "Plug in refinementBoxes component as a tree.", GH_ParamAccess.list);
+            pManager.AddBrepParameter("Refinement Boxes", "R", "Plug in refinementBoxes component as a flattened list.", GH_ParamAccess.list);
             pManager.AddPointParameter("Location in mesh", "L", "Insert a point that is located within the mesh.", GH_ParamAccess.item);
             pManager.AddIntegerParameter("no Cells between levels", "C", "Insert the number cell divisions you want to use between to refinement levels", GH_ParamAccess.item,2);
 

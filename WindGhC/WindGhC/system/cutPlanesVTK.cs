@@ -26,7 +26,7 @@ namespace WindGhC.system
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddPlaneParameter("Cut plane", "p", "Input a plane to use as cut plane for post processing", GH_ParamAccess.list, new Plane(new Point3d(), Vector3d.YAxis));
+            pManager.AddPlaneParameter("Cut plane", "p", "Input a list of planes to use as cut planes for post processing", GH_ParamAccess.list, new Plane(new Point3d(), Vector3d.YAxis));
         }
 
         /// <summary>
@@ -34,7 +34,7 @@ namespace WindGhC.system
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddGenericParameter("cutPlanesVTK", "p", "cutPlanesVTK file", GH_ParamAccess.item);
+            pManager.AddGenericParameter("cutPlanesVTK", "p", "cutPlanesVTK file. Include in ctrlDict and Assembly", GH_ParamAccess.item);
         }
 
         /// <summary>

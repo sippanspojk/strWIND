@@ -70,8 +70,7 @@ namespace WindGhC
             DA.GetDataList(3, iConstantFolder);
             DA.GetDataList(4, iSystemFolder);
             DA.GetDataList(5, iZeroFolder); 
-
-
+                                   
             DataTree<Brep> convertedGeomTree = new DataTree<Brep>();
 
             int i = 0;
