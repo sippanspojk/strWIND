@@ -111,8 +111,8 @@ namespace WindGhC
                 "/*--------------------------------*- C++ -*----------------------------------*\\\n" +
                 "| =========                 |                                                 |\n" +
                 "| \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |\n" +
-                "|  \\\\    /   O peration     |                                                 |\n" +
-                "|   \\\\  /    A nd           | Web:      www.OpenFOAM.org                      |\n" +
+                "|  \\\\    /   O peration     | Website:  www.OpenFOAM.org                      |\n" +
+                "|   \\\\  /    A nd           | Version: 6                                      |\n" +
                 "|    \\\\/     M anipulation  |                                                 |\n" +
                 "\\*---------------------------------------------------------------------------*/\n" +
                 "FoamFile\n" +

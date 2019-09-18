@@ -30,8 +30,6 @@ namespace WindGhC
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
 
-
-
             pManager.AddGeometryParameter("Geometry", "G", "Reference geometry from Rhino.", GH_ParamAccess.tree);
             pManager.AddNumberParameter("Angle", "A", "Rotation angle in degrees.", GH_ParamAccess.item, 0.0);
             pManager.AddTextParameter("Patch Names", "N", "Input names of the geometry patches as a string list.", GH_ParamAccess.list);
@@ -56,9 +54,9 @@ namespace WindGhC
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            GH_Structure<IGH_GeometricGoo> iGeometry;
+            GH_Structure<IGH_GeometricGoo> iGeometry = new GH_Structure<IGH_GeometricGoo>();
             double iAngle = 0.0;
-            List<String> iNameGeom = new List<String>();
+            List<string> iNameGeom = new List<string>();
             List<int> iRefLvlGeom = new List<int>();
             List<double> iX = new List<double>();
             double iY = 0.0;
@@ -74,31 +72,29 @@ namespace WindGhC
 
 
             DataTree<Brep> convertedGeomTree = new DataTree<Brep>();
+            List<GH_Path> pathList = new List<GH_Path>();
 
-            int i = 0;
-            Brep convertedBrep = null;
-            foreach (GH_Path path in iGeometry.Paths)
+            foreach (var path in iGeometry.Paths)
+                for (int i = 0; i < iGeometry.get_Branch(path).Count; i++)
+                    pathList.Add(path);
+
+            var flattenedGeom =  iGeometry.FlattenData();
+            for (int i = 0; i < flattenedGeom.Count; i++)
             {
-                foreach (var geom in iGeometry.get_Branch(path))
-                {
-                    GH_Convert.ToBrep(geom, ref convertedBrep, 0);
-                    convertedGeomTree.Add(convertedBrep, new GH_Path(i));
-                    convertedBrep = null;
-                }
-                i += 1;
+                flattenedGeom[i].CastTo(out Brep tempBrep);
+                convertedGeomTree.Add(tempBrep, pathList[i]);
             }
 
-            Point3d centerPt = GetCenterPt(convertedGeomTree.AllData());
 
-            foreach (GH_Path path in convertedGeomTree.Paths)
+            DataTree<Brep> rotatedGeomTree = convertedGeomTree;
+            Point3d centerPt = GetCenterPt(rotatedGeomTree.AllData());
+            foreach (GH_Path path in rotatedGeomTree.Paths)
             {
-                foreach (var brep in convertedGeomTree.Branch(path))
-                    brep.Rotate(iAngle * Math.PI / 180, Vector3d.ZAxis, centerPt);
-                
+                foreach (var brep in rotatedGeomTree.Branch(path))
+                    brep.Rotate(iAngle * Math.PI / 180, Vector3d.ZAxis, centerPt);                
             }
 
-            centerPt = GetCenterPt(convertedGeomTree.AllData());
-                        
+       
             double height = GetHeight(convertedGeomTree.AllData());
             double width = GetWidth(convertedGeomTree.AllData());
             double depth = GetDepth(convertedGeomTree.AllData());
@@ -135,7 +131,7 @@ namespace WindGhC
             };
 
             
-            List<String> nameList = new List<String>
+            List<string> nameList = new List<string>
             {
                 "INLET",
                 "OUTLET",
@@ -145,36 +141,35 @@ namespace WindGhC
                 "TOP"
             };
                         
-            DataTree<Brep> geometryList = new DataTree<Brep>();
+            DataTree<Brep> oGeometryList = new DataTree<Brep>();
 
-            i = 0;
             int j = 0;
+            int k = 0;
             foreach (var surface in surfaceList)
             {
-                surface.SetUserString("Name", nameList[i]);
+                surface.SetUserString("Name", nameList[j]);
                 surface.SetUserString("RefLvl", "0");
                 surface.SetUserString("RotAngle", iAngle.ToString());
-                geometryList.Add(surface,new GH_Path(j));
-                i++;
+                oGeometryList.Add(surface,new GH_Path(k));
                 j++;
+                k++;
             };
 
-            i = 0;
-            foreach (GH_Path path in convertedGeomTree.Paths)
+            j = 0;
+            foreach (GH_Path path in rotatedGeomTree.Paths)
             {
-                foreach (var brep in convertedGeomTree.Branch(path))
+                foreach (var brep in rotatedGeomTree.Branch(path))
                 {
-                    brep.SetUserString("Name", iNameGeom[i]);
-                    brep.SetUserString("RefLvl", iRefLvlGeom[i].ToString());
+                    brep.SetUserString("Name", iNameGeom[j]);
+                    brep.SetUserString("RefLvl", iRefLvlGeom[j].ToString());
                     brep.SetUserString("RotAngle", iAngle.ToString());
-                    geometryList.Add(brep,new GH_Path(j));
+                    oGeometryList.Add(brep,new GH_Path(k));
                 }
-                i++;
                 j++;
+                k++;
             }
-
-
-            DA.SetDataTree(0, geometryList);
+            
+            DA.SetDataTree(0, oGeometryList);
         }
 
         /// <summary>

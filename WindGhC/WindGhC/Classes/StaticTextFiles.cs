@@ -69,13 +69,13 @@ namespace WindGhC
 
 
             string shellString =
-                "/*--------------------------------*- C++ -*----------------------------------*\\\n" +
-              "| =========                 |                                                 |\n" +
-              "| \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |\n" +
-              "|  \\\\    /   O peration     | Version:  2.2.0                                 |\n" +
-              "|   \\\\  /    A nd           | Web:      www.OpenFOAM.org                      |\n" +
-              "|    \\\\/     M anipulation  |                                                 |\n" +
-              "\\*---------------------------------------------------------------------------*/\n" +
+              "/*--------------------------------*- C++ -*----------------------------------*\\\n" +
+                "| =========                 |                                                 |\n" +
+                "| \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |\n" +
+                "|  \\\\    /   O peration     | Website:  www.OpenFOAM.org                      |\n" +
+                "|   \\\\  /    A nd           | Version: 6                                      |\n" +
+                "|    \\\\/     M anipulation  |                                                 |\n" +
+                "\\*---------------------------------------------------------------------------*/\n" +
               "FoamFile\n" +
               "{{\n" +
               "     version     2.0;\n" +
@@ -149,8 +149,8 @@ namespace WindGhC
                 "/*--------------------------------*- C++ -*----------------------------------*\\\n" +
                 "| =========                 |                                                 |\n" +
                 "| \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |\n" +
-                "|  \\\\    /   O peration     | Version:  2.2.0                                 |\n" +
-                "|   \\\\  /    A nd           | Web:      www.OpenFOAM.org                      |\n" +
+                "|  \\\\    /   O peration     | Website:  www.OpenFOAM.org                      |\n" +
+                "|   \\\\  /    A nd           | Version: 6                                      |\n" +
                 "|    \\\\/     M anipulation  |                                                 |\n" +
                 "\\*---------------------------------------------------------------------------*/\n" +
                 "FoamFile\n" +
@@ -213,6 +213,7 @@ namespace WindGhC
         {
             string nuTildaInsert = "";
 
+
             for (int i = 6; i < iGeometry.Count; i++)
             {
                 nuTildaInsert += "    " + iGeometry[i].GetUserString("Name") + "\n" +
@@ -226,8 +227,8 @@ namespace WindGhC
                 "/*--------------------------------*- C++ -*----------------------------------*\\\n" +
                 "| =========                 |                                                 |\n" +
                 "| \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |\n" +
-                "|  \\\\    /   O peration     | Version:  2.2.0                                 |\n" +
-                "|   \\\\  /    A nd           | Web:      www.OpenFOAM.org                      |\n" +
+                "|  \\\\    /   O peration     | Website:  www.OpenFOAM.org                      |\n" +
+                "|   \\\\  /    A nd           | Version: 6                                      |\n" +
                 "|    \\\\/     M anipulation  |                                                 |\n" +
                 "\\*---------------------------------------------------------------------------*/\n" +
                 "FoamFile\n" +
@@ -329,8 +330,8 @@ namespace WindGhC
                 "/*--------------------------------*- C++ -*----------------------------------*\\\n" +
                 "| =========                 |                                                 |\n" +
                 "| \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |\n" +
-                "|  \\\\    /   O peration     | Version:  2.2.0                                 |\n" +
-                "|   \\\\  /    A nd           | Web:      www.OpenFOAM.org                      |\n" +
+                "|  \\\\    /   O peration     | Website:  www.OpenFOAM.org                      |\n" +
+                "|   \\\\  /    A nd           | Version: 6                                      |\n" +
                 "|    \\\\/     M anipulation  |                                                 |\n" +
                 "\\*---------------------------------------------------------------------------*/\n" +
                 "FoamFile\n" +
@@ -350,17 +351,17 @@ namespace WindGhC
 
         }
 
-        public static string GetForcesFunction(List<Brep> iGeometry)
+        public static string GetForcesFunction(DataTree<Brep> iGeometry)
         {           
             string forcesString = "";
 
-            for (int i = 6; i < iGeometry.Count; i++)
+            for (int i = 6; i < iGeometry.Paths.Count; i++)
             {
-                string brepName = iGeometry[i].GetUserString("Name").ToString();
+                string brepName = iGeometry.Branch(iGeometry.Path(i))[0].GetUserString("Name").ToString();
 
-                string CofR_X = VolumeMassProperties.Compute(iGeometry[i].CapPlanarHoles(0.1)).Centroid.X.ToString();
-                string CofR_Y = VolumeMassProperties.Compute(iGeometry[i].CapPlanarHoles(0.1)).Centroid.Y.ToString();
-                string CofR_Z = VolumeMassProperties.Compute(iGeometry[i].CapPlanarHoles(0.1)).Centroid.Z.ToString();
+                string CofR_X = VolumeMassProperties.Compute(iGeometry.Branch(iGeometry.Path(i))).Centroid.X.ToString();
+                string CofR_Y = VolumeMassProperties.Compute(iGeometry.Branch(iGeometry.Path(i))).Centroid.Y.ToString();
+                string CofR_Z = VolumeMassProperties.Compute(iGeometry.Branch(iGeometry.Path(i))).Centroid.Z.ToString();
                 string CofR = CofR_X + " " + CofR_Y + " " + CofR_Z;
 
                 forcesString +=
@@ -393,12 +394,14 @@ namespace WindGhC
             }
 
             string brepNames = "";
-            for (int i = 6; i < iGeometry.Count; i++)
-                brepNames += "       " + iGeometry[i].GetUserString("Name") + "\n";
+            for (int i = 6; i < iGeometry.Paths.Count; i++)
+                brepNames += "       " + iGeometry.Branch(iGeometry.Path(i))[0].GetUserString("Name") + "\n";
 
-
-            string geomXCoord = VolumeMassProperties.Compute(iGeometry[6]).Centroid.X.ToString();
-            string geomYCoord = VolumeMassProperties.Compute(iGeometry[6]).Centroid.Y.ToString();          
+            iGeometry.Flatten();
+            List<Brep> flattenedList = iGeometry.Branch(iGeometry.Path(0));
+            
+            string geomXCoord = VolumeMassProperties.Compute(flattenedList.GetRange(6, flattenedList.Count - 6)).Centroid.X.ToString();
+            string geomYCoord = VolumeMassProperties.Compute(flattenedList.GetRange(6, flattenedList.Count - 6)).Centroid.Y.ToString();          
             string geomCentCoord = geomXCoord + " " + geomYCoord + " 0.0";
 
             #region shellString       
@@ -406,13 +409,13 @@ namespace WindGhC
                     "/*--------------------------------*- C++ -*----------------------------------*\\\n" +
                     "| =========                 |                                                 |\n" +
                     "| \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |\n" +
-                    "|  \\\\    /   O peration     | Version:  2.2.0                                 |\n" +
-                    "|   \\\\  /    A nd           | Web:      www.OpenFOAM.org                      |\n" +
+                    "|  \\\\    /   O peration     | Website:  www.OpenFOAM.org                      |\n" +
+                    "|   \\\\  /    A nd           | Version: 6                                      |\n" +
                     "|    \\\\/     M anipulation  |                                                 |\n" +
                     "\\*---------------------------------------------------------------------------*/\n" +
                     "{0}\n" +
                     "\n" +
-                    "forces_SK_All\n" +
+                    "forces_All\n" +
                     "{{\n" +
                     "   type                forces;\n" +
                     "   functionObjectLibs  (\"libforces.so\");\n" +

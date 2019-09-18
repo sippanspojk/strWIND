@@ -64,6 +64,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>TextFilesResources.resx</DependentUpon>
     </Compile>
+    <Compile Include="Utilities\2SOFiSTiK.cs" />
     <Compile Include="Utilities\Assembly.cs" />
     <Compile Include="constant\BlockMeshDict.cs" />
     <Compile Include="system\ControlDict.cs" />

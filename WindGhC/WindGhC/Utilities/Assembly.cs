@@ -59,7 +59,8 @@ namespace WindGhC
         {
             string iPath = "";
             bool iButton = false;
-            GH_Structure<GH_Brep> iGeometry;        //I don't need to write "= new GH_Structure<GH_Brep>();" since it is associated with an out keyword in DA.GetDataTree(...) 
+            GH_Structure<GH_Brep> iGeometry;
+            //GH_Structure<IGH_GeometricGoo> iGeometry = new GH_Structure<IGH_GeometricGoo>();
             var iConstantFolder = new List<TextFile>();
             var iSystemFolder = new List<TextFile>();
             var iZeroFolder = new List<TextFile>();
@@ -69,21 +70,37 @@ namespace WindGhC
             DA.GetDataTree(2, out iGeometry);
             DA.GetDataList(3, iConstantFolder);
             DA.GetDataList(4, iSystemFolder);
-            DA.GetDataList(5, iZeroFolder); 
-                                   
+            DA.GetDataList(5, iZeroFolder);
+
+            /*DataTree<Brep> convertedGeomTree = new DataTree<Brep>();
+            List<GH_Path> pathList = new List<GH_Path>();
+
+            foreach (var path in iGeometry.Paths)
+                for (int i = 0; i < iGeometry.get_Branch(path).Count; i++)
+                    pathList.Add(path);
+
+            var flattenedGeom = iGeometry.FlattenData();
+            for (int i = 0; i < flattenedGeom.Count; i++)
+            {
+                flattenedGeom[i].CastTo(out Brep tempBrep);
+                convertedGeomTree.Add(tempBrep, pathList[i]);
+            }*/
+
             DataTree<Brep> convertedGeomTree = new DataTree<Brep>();
 
-            int i = 0;
+            int x = 0;
+            Brep convertedBrep = null;
             foreach (GH_Path path in iGeometry.Paths)
-            { 
+            {
                 foreach (var geom in iGeometry.get_Branch(path))
                 {
-                    Brep convertedBrep = null;
                     GH_Convert.ToBrep(geom, ref convertedBrep, 0);
-                    convertedGeomTree.Add(convertedBrep, new GH_Path(i));
+                    convertedGeomTree.Add(convertedBrep, new GH_Path(x));
+                    convertedBrep = null;
                 }
-                i += 1;
+                x += 1;
             }
+
 
             string fileLocation = "";
             string folderLocation = "";
@@ -132,7 +149,7 @@ namespace WindGhC
                 foreach (GH_Path path in convertedGeomTree.Paths)                   
                     ExportStl(convertedGeomTree.Branch(path), triSurfacePath + convertedGeomTree.Branch(path)[0].GetUserString("Name"));
 
-
+               
 
                 // Write static text files.
                 List<Brep> tempGeomList = new List<Brep>();
@@ -151,7 +168,7 @@ namespace WindGhC
                 File.WriteAllText(System.IO.Path.Combine(systemPath, "fvSolution"), StaticTextFiles.GetFVSolution());
                 File.WriteAllText(System.IO.Path.Combine(systemPath, "fvSchemes"), StaticTextFiles.GetFVSchemes());
                 File.WriteAllText(System.IO.Path.Combine(systemPath, "surfaceFeatureExtractDict"), StaticTextFiles.GetSurfaceFeatureExtractDict(tempGeomList));
-                File.WriteAllText(System.IO.Path.Combine(systemPath, "forces"), StaticTextFiles.GetForcesFunction(tempGeomList));
+                File.WriteAllText(System.IO.Path.Combine(systemPath, "forces"), StaticTextFiles.GetForcesFunction(convertedGeomTree));
 
                 File.WriteAllText(System.IO.Path.Combine(zeroPath, "p"), StaticTextFiles.GetP(tempGeomList));
                 File.WriteAllText(System.IO.Path.Combine(zeroPath, "nut"), StaticTextFiles.GetNut(tempGeomList));

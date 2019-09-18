@@ -135,12 +135,12 @@ namespace WindGhC.system
                 #region shellString
                 string shellString =
                     "/*--------------------------------*- C++ -*----------------------------------*\\\n" +
-                  "| =========                 |                                                 |\n" +
-                  "| \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |\n" +
-                  "|  \\\\    /   O peration     |                                                 |\n" +
-                  "|   \\\\  /    A nd           | Web:      www.OpenFOAM.org                      |\n" +
-                  "|    \\\\/     M anipulation  |                                                 |\n" +
-                  "\\*---------------------------------------------------------------------------*/\n" +
+                "| =========                 |                                                 |\n" +
+                "| \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |\n" +
+                "|  \\\\    /   O peration     | Website:  www.OpenFOAM.org                      |\n" +
+                "|   \\\\  /    A nd           | Version: 6                                      |\n" +
+                "|    \\\\/     M anipulation  |                                                 |\n" +
+                "\\*---------------------------------------------------------------------------*/\n" +
                     "windInfo_{0}\n" +
                     "   {{\n" +
 

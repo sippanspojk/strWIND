@@ -29,7 +29,7 @@ namespace WindGhC
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddGeometryParameter("Geometry", "G", "Input all geometry to generate the bounding block mesh.", GH_ParamAccess.tree);
+            pManager.AddBrepParameter("Geometry", "G", "Input all geometry to generate the bounding block mesh.", GH_ParamAccess.tree);
             pManager.AddIntegerParameter("MeshSize", "M", "Specify the size of the block mesh [m].", GH_ParamAccess.item,10);
         }
 
@@ -48,7 +48,7 @@ namespace WindGhC
         protected override void SolveInstance(IGH_DataAccess DA)
         {
 
-            GH_Structure<IGH_GeometricGoo> iGeometry;
+            GH_Structure<GH_Brep> iGeometry;
             int iMeshSize = 0;
 
             DA.GetDataTree(0, out iGeometry);
@@ -128,12 +128,12 @@ namespace WindGhC
             #region shellstring
             string shellString =
               ("/*--------------------------------*- C++ -*----------------------------------*\\\n" +
-              "| =========                 |                                                 |\n" +
-              "| \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |\n" +
-              "|  \\\\    /   O peration     |                                                 |\n" +
-              "|   \\\\  /    A nd           | Web:      www.OpenFOAM.org                      |\n" +
-              "|    \\\\/     M anipulation  |                                                 |\n" +
-              "\\*---------------------------------------------------------------------------*/\n" +
+                "| =========                 |                                                 |\n" +
+                "| \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |\n" +
+                "|  \\\\    /   O peration     | Website:  www.OpenFOAM.org                      |\n" +
+                "|   \\\\  /    A nd           | Version: 6                                      |\n" +
+                "|    \\\\/     M anipulation  |                                                 |\n" +
+                "\\*---------------------------------------------------------------------------*/\n" +
               "FoamFile\n" +
               "{{\n" +
               "     version     2.0;\n" +
