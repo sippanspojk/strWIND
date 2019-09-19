@@ -56,58 +56,58 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Classes\StaticTextFiles.cs" />
-    <Compile Include="system\cutPlanesVTK.cs" />
-    <Compile Include="system\windInfo.cs" />
-    <Compile Include="TextFilesResources.Designer.cs">
+    <Compile Include="source\Classes\StaticTextFiles.cs" />
+    <Compile Include="source\system\cutPlanesVTK.cs" />
+    <Compile Include="source\system\windInfo.cs" />
+    <Compile Include="source\TextFilesResources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>TextFilesResources.resx</DependentUpon>
     </Compile>
-    <Compile Include="Utilities\2SOFiSTiK.cs" />
-    <Compile Include="Utilities\Assembly.cs" />
-    <Compile Include="constant\BlockMeshDict.cs" />
-    <Compile Include="system\ControlDict.cs" />
-    <Compile Include="Utilities\Geometry.cs" />
-    <Compile Include="Utilities\RefinementBoxes.cs" />
-    <Compile Include="system\SnappyHexMeshDict.cs" />
-    <Compile Include="Classes\TextFile.cs" />
-    <Compile Include="0\U.cs" />
+    <Compile Include="source\Utilities\2SOFiSTiK.cs" />
+    <Compile Include="source\Utilities\Assembly.cs" />
+    <Compile Include="source\constant\BlockMeshDict.cs" />
+    <Compile Include="source\system\ControlDict.cs" />
+    <Compile Include="source\Utilities\Geometry.cs" />
+    <Compile Include="source\Utilities\RefinementBoxes.cs" />
+    <Compile Include="source\system\SnappyHexMeshDict.cs" />
+    <Compile Include="source\Classes\TextFile.cs" />
+    <Compile Include="source\0\U.cs" />
     <Compile Include="WindGhCInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="TextFilesResources.resx">
+    <EmbeddedResource Include="source\TextFilesResources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>TextFilesResources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\decomposeParDict.txt" />
+    <None Include="source\Resources\decomposeParDict.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\fvSchemes.txt" />
+    <None Include="source\Resources\fvSchemes.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\fvSolution.txt" />
+    <None Include="source\Resources\fvSolution.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\LESProperties.txt" />
+    <None Include="source\Resources\LESProperties.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\RASProperties.txt" />
+    <None Include="source\Resources\RASProperties.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\transportProperties.txt" />
+    <None Include="source\Resources\transportProperties.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\turbulenceProperties.txt" />
+    <None Include="source\Resources\turbulenceProperties.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\foam.txt" />
+    <None Include="source\Resources\foam.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\mesh.txt" />
+    <None Include="source\Resources\mesh.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
