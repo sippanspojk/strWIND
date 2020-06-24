@@ -96,7 +96,7 @@ namespace WindGhC.source.postProcessing
                     "ESWL\n" +
                     "{\n" +
                     "    type                ESWL;\n" +
-                    "    functionObjectLibs(\"libESWL.so\");\n" +
+                    "    functionObjectLibs (\"libESWL.so\");\n" +
                     "\n" +
                     "    statStartTime       " + statStartString + ";     //At what time should the statistics start?\n" +
                     "\n" +

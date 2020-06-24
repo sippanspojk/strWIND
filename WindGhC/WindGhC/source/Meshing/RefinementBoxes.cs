@@ -97,5 +97,12 @@ namespace WindGhC.Properties
         {
             get { return new Guid("d4e86076-7519-43c8-bd7f-c7ae8c837be7"); }
         }
+        public override GH_Exposure Exposure
+        {
+            get
+            {
+                return GH_Exposure.secondary;
+            }
+        }
     }
 }

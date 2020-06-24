@@ -521,5 +521,12 @@ namespace WindGhC.Solving
         {
             get { return new Guid("491df384-52f9-40f1-8861-7d87dadd9809"); }
         }
+        public override GH_Exposure Exposure
+        {
+            get
+            {
+                return GH_Exposure.secondary;
+            }
+        }
     }
 }
