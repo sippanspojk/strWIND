@@ -8,36 +8,37 @@ namespace WindGhC
 {
     public class TextFile
     {
-        //properties
-        private string textFile = "";
-        private string textFileName = "";
+        //properties / fields
+        private string File = "";
+        private string FileName = "";
 
         //constructors (in this case 2 overloads) 
         public TextFile()
         {
         }
 
-        public TextFile(string textFile, string textFileName)
+        public TextFile(string file, string fileName)
+            : this()            //this means the empty constructur will be called first and then this constructor
         {
-            this.textFile = textFile;
-            this.textFileName = textFileName;
+            this.File = file;
+            this.FileName = fileName;
         }
 
 
         //methods
         public string GetName()
         {
-            return textFileName;
+            return FileName;
         }
 
-        void SetName(string newName)
+        void SetName(string newFileName)
         {
-            textFileName = newName;
+            FileName = newFileName;
         }
 
         public string GetFileText()
         {
-            return textFile;
+            return File;
         }
 
 

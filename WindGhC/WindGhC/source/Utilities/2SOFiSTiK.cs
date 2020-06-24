@@ -18,7 +18,7 @@ namespace WindGhC.Utilities
                 "2sof",
                 "Generates a SOFiSTiK case for static structural analysis.",
                 "STR.Wind",
-                "postProcessing")
+                "Utilities")
         {
         }
 
@@ -30,7 +30,7 @@ namespace WindGhC.Utilities
             pManager.AddBooleanParameter("Button", "B", "Write to file", GH_ParamAccess.item, false);
             pManager.AddTextParameter("readPath", "rP", "Path to read from", GH_ParamAccess.item);
             pManager.AddTextParameter("writePath", "wP", "Path to write to", GH_ParamAccess.item);
-            pManager.AddIntegerParameter("startNumber", "n", "Start of node numbering",GH_ParamAccess.item, 9000);
+            pManager.AddIntegerParameter("startNumber", "n", "Start of node numbering", GH_ParamAccess.item, 9000);
 
             pManager[2].Optional = true;
             pManager[3].Optional = true;
@@ -79,7 +79,7 @@ namespace WindGhC.Utilities
             // Generate directory
             string sofistikPath = Path.Combine(folderLocation, "SOFiSTiK");
             Directory.CreateDirectory(sofistikPath);
-            
+
 
             // Generate load nodes and node numbers
             List<Point3d> oLoadNodes = new List<Point3d>();
@@ -107,13 +107,13 @@ namespace WindGhC.Utilities
                         }
                     }
                     oLoadNodes.Add(new Point3d(pointCoords[0], pointCoords[1], pointCoords[2]));
-                   
+
                     lvl++;
                 }
 
                 else
                     break;
-            }            
+            }
 
 
             List<int> oNodeNumbers = new List<int>();
@@ -129,7 +129,7 @@ namespace WindGhC.Utilities
             // Generate load files         
             List<string> loadtypeList = new List<string> { "PXX", "PYY", "PZZ", "MXX", "MYY", "MZZ" };
             if (iButton)
-            {              
+            {
                 List<List<List<float>>> invertedData = new List<List<List<float>>>();
                 foreach (var panel in allDataAsList)
                 {
@@ -204,10 +204,10 @@ namespace WindGhC.Utilities
                 int LC = 0;
                 foreach (var matrix in correlationMatrix)
                 {
-                    oCorrMatrix += " Correlation matrix for " + loadtypeList[LC] + "\n"; 
+                    oCorrMatrix += " Correlation matrix for " + loadtypeList[LC] + "\n";
                     foreach (var row in matrix)
                     {
-                        foreach(var col in row)
+                        foreach (var col in row)
                         {
                             oCorrMatrix += col.ToString() + " ";
                         }
@@ -299,7 +299,7 @@ namespace WindGhC.Utilities
                     "LC 1 type none TITL 'Wind load'\n" +
                     "#include windLoad.dat\n" +
                     "END";
-                
+
                 File.WriteAllText(Path.Combine(sofistikPath, "analysisCase.dat"), teddyFile);
                 #endregion
 
@@ -315,7 +315,7 @@ namespace WindGhC.Utilities
             {
                 //You can add image files to your project resources and access them like this:
                 // return Resources.IconForThisComponent;
-                return null;
+                return Properties.Resources._2sofistik;
             }
         }
 

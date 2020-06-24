@@ -1,0 +1,2350 @@
+!     CHECK DIMENSIONS OF THE BOX
+        write(*,*) 'Check dimensions of the Box'
+        write(58,*) 'Check dimensions of the Box'
+       
+        if (L2.lt.8*L) then 
+          write(*,*) 'Attention L2 lower than 8xL'
+          write(58,*) 'Attention L2 lower than 8xL'
+          stop
+        elseif (L3.lt.8*L) then
+          write(*,*) 'Attention L3 lower than 8xL'
+          write(58,*) 'Attention L3 lower than 8xL'
+          stop
+        else                     
+          write(*,*) 'dimensions of box... OK'
+          write(*,*)
+          write(58,*) 'dimensions of box... OK'
+          write(58,*)  
+        endif
+
+
+
+!     Gust event filter
+      maxiter = 10
+      iterende = 0
+      ugustms = 0.0
+      j1ams = 0
+!     Filter option iopt =1 --> defined gust event between lgs and ugs (for folding)
+!     Filter option iopt =2 --> maximum gust event
+!     Filter option iopt =3 --> defined variance of wind field
+      iopt = 3
+
+      do 11 iter=1,maxiter
+       
+!       rewind(15)
+!       rewind(80)
+!       rewind(11)
+!       rewind(13)
+ 
+!     INITIALIZE RANDOM NUMBERS
+        call init_rand
+
+!     DETERMINE ENERGY SPECTRUM 
+
+        sumen1=0.d0
+        sumen2=0.d0
+        sumen3=0.d0
+        
+        write(*,*) 'Calculate energy spectrum'
+        write(*,*) 
+        write(58,*) 'Calculate energy spectrum'
+        write(58,*) 
+        do 100 j3= 0,N3-1
+          do 110 j2= 0,N2-1
+           do 120 j1= 0,N1-1
+            
+!             k1 = 6.283185307*(j1)/L1
+!             k2 = 6.283185307*(j2)/L2 
+!             k3 = 6.283185307*(j3)/L3                    
+!           Wavenumbers           
+            if(j1.lt.N1/2) then
+!            k1 = 6.283185307*(-j1)/L1
+             k1 = 6.283185307*(j1)/L1
+            else
+!            k1 = 6.283185307*(N1-j1)/L1
+             k1 = 6.283185307*(-1)*(N1-j1)/L1
+            endif
+!            
+            if(j2.lt.N2/2) then
+!            k2 = 6.283185307*(-j2)/L2
+             k2 = 6.283185307*(j2)/L2
+            else
+!            k2 = 6.283185307*(N2-j2)/L2
+             k2 = 6.283185307*(-1)*(N2-j2)/L2
+            endif
+            
+            if(j3.lt.N3/2) then
+!            k3 = 6.283185307*(-j3)/L3
+             k3 = 6.283185307*(j3)/L3
+            else
+!            k3 = 6.283185307*(N3-j3)/L3
+             k3 = 6.283185307*(-1)*(N3-j3)/L3
+            endif
+                               
+            k1s = k1**2.d0
+            k2s = k2**2.d0
+            k3s = k3**2.d0
+!           k0-undistorted wave vector, beta = 0, isotropic turbulence         
+            ks = k1s + k2s + k3s
+            k = dsqrt(ks)
+         
+!           Complex random numbers, gaussian for real and imaginary part
+!           xlength to normalize the length of the complex vector to 1
+!           -->energy for every single realizatiequals variance
+             call gen(1.d0,0.d0,xn1re)
+             call gen(1.d0,0.d0,xn1im)
+!            xlength1 = dsqrt(xn1re**2.d0 + xn1im**2.d0)
+             xn1 = cmplx(xn1re,xn1im) 
+!            xn1 = 1.0/xlength1 * xn1
+         
+             call gen(1.d0,0.d0,xn2re)
+             call gen(1.d0,0.d0,xn2im)
+!            xlength2 = dsqrt(xn2re**2.d0 + xn2im**2.d0)
+             xn2 = cmplx(xn2re,xn2im)
+!            xn2 = 1.0/xlength2 * cmplx(xn2re,xn2im)
+!           write xn2check array to check quality of random numbers             
+             if ((j2.eq.0).and.(j3.eq.0)) then
+              xn2check(j1+1)= xn2
+             endif  
+                     
+             call gen(1.d0,0.d0,xn3re)
+             call gen(1.d0,0.d0,xn3im)  
+!            xlength3 =  dsqrt(xn3re**2.d0 + xn3im**2.d0)
+             xn3 = cmplx(xn3re,xn3im)
+!            xn3 = 1.0/xlength3 * cmplx(xn3re,xn3im)
+             
+!             Isotropic case: gam = 0.0 --------------------
+
+!          -  Energy spectrum depending on k0, undistorted wave number       
+              En = E(k,L,fak)   
+               
+              if ((j1.eq.0).and.(j2.eq.0).and.(j3.eq.0)) then
+               Cfakt = 0.0
+              else    
+               Cfakt = fscale*dsqrt(En*19.73921/(nth*delta*(k**4.d0)))
+              endif
+              
+              dZiso1 = Cfakt * ( k3 * xn2 - k2 * xn3) 
+              dZiso2 = Cfakt * (-k3 * xn1 + k1 * xn3)
+              dZiso3 = Cfakt * ( k2 * xn1 - k1 * xn2)  
+   
+       if(gam.eq.0.0) then    
+              S1 = dZiso1 
+              S2 = dZiso2 
+              S3 = dZiso3    
+       else        
+!            - Hypergeometric function
+             fakhyp = -1*(k*L)**(-2.d0)
+             if (fakhyp.lt.-1000.0) then
+              F21re = 0.05
+             else
+              ah = (0.333,0.0)
+              bh = (2.8333,0.0)
+              ch = (1.333,0.0)
+              zh = cmplx(fakhyp,0.0)       
+              F21 = hypgeo(ah,bh,ch,zh)
+              F21re = cmplx(F21)
+             endif  
+          
+!           - dimensionless eddy lifetime, define dU/dz
+              if ((j1.eq.0).and.(j2.eq.0).and.(j3.eq.0)) then
+               beta = 0.0
+              else
+!              beta1 = gam*(k*L)**(-0.666666)*0.5
+               beta = gam/(((k*L)**0.6666)*sqrt(F21re))           
+              endif
+!                
+!           - Parameter for anisotropic turbulence:
+!             shear distorted wave vecor
+              k30 = k3 + beta*k1
+              k30s = k30**2.d0
+!             Parameter k(beta)for anisotropic turbulence, beta .ne. 0
+              k0s = k1s + k2s + k30s
+              k0 = dsqrt(k0s)
+      
+              if ((j1.eq.0).and.(j2.eq.0).and.(j3.eq.0)) then
+               k0ksfak = 0.0
+              else    
+               k0ksfak = k0s/ks
+              endif
+      
+              if (j1.eq.0.and.j2.eq.0) then
+               Ce1 = 0.0
+               Ce2 = 0.0
+               sita1 = 0.0
+               sita2 = 0.0
+              elseif (j2.eq.0) then
+               Ce2 = 0.0
+               Ce1 = beta*k1s*(k0s-2*k30s+beta*k1*k30)/(ks*(k1s+k2s))
+
+               sita1 = Ce1
+               sita2 = 0.0
+              elseif (j1.eq.0) then
+               Ce1 = 0.0
+               Ce2 = 0.0
+               sita1 = 0.0
+               sita2 = 0.0  
+              else
+               Ce1 = beta*k1s*(k0s-2*k30s+beta*k1*k30)/(ks*(k1s+k2s))
+               atanfak = beta*k1*dsqrt(k1s+k2s)/(k0s-k30*k1*beta)
+               atanfak1 = datan(atanfak)
+
+!              ATTENTION: Paper J. Mann differs to ISO 61400         
+                Ce2 = (k2*k0s)/((k1s+k2s)**1.5d0)*atanfak1
+!              Ce2 = (k2s*k0s)/((k1s+k2s)**1.5d0)*atanfak1
+!              ATTENTION: Ce2 = k2s*.... oder k2*.....
+
+               sita1 = Ce1 - (k2/k1)*Ce2
+               sita2 = (k2/k1)*Ce1 + Ce2
+              endif
+!          -  Energy spectrum depending on k0, undistorted wave number       
+              En = E(k0,L,fak)  
+              
+              if ((j1.eq.0).and.(j2.eq.0).and.(j3.eq.0)) then
+               Cfakt = 0.0
+              else    
+               Cfakt = fscale*dsqrt(En*19.73921/(nth*delta*(k0**4.d0)))
+              endif
+                            
+              dZiso1 = Cfakt * ( k30 * xn2 - k2 * xn3) 
+              dZiso2 = Cfakt * (-k30 * xn1 + k1 * xn3)
+              dZiso3 = Cfakt * ( k2 * xn1 - k1 * xn2)
+                
+!            Square root in the 3 component case of the spectral tensor
+             S1 = dZiso1 + sita1 * dZiso3
+             S2 = dZiso2 + sita2 * dZiso3
+             S3 = k0ksfak * dZiso3     
+       endif   
+          
+             S1re = cmplx(S1)
+             S1im = aimag(S1) 
+          
+             S2re = cmplx(S2)
+             S2im = aimag(S2) 
+          
+             S3re = cmplx(S3)
+             S3im = aimag(S3) 
+
+!           WRITE DATA ARRAYS FOR NUMERICAL RECIPES FFT ROUTINE   
+!            
+             il=j1+1+(j2+1-1)*nn(1)+(j3+1-1)*nn(2)*nn(1)
+             il=2*il-1
+             
+             data1(il) = S1re
+             data2(il) = S2re
+             data3(il) = S3re
+             
+             il=il+1
+             data1(il) = S1im
+             data2(il) = S2im
+             data3(il) = S3im
+   
+
+!xxxxxxxx used for debugging   xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+!           Write parameters in bug.dat
+!            write(20,*) j1,j2,j3,k,beta,beta1
+!           Write spectral energy in input.dat
+!             write(21,*) il-1,il,S1re,S1im,S2re,S2im,S3re,S3im
+!               write(21,*) il-1,il,S1re,S1im
+!xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+             sumen1 = sumen1 + S1re**2.0+S1im**2.0
+             sumen2 = sumen2 + S2re**2.0+S2im**2.0
+             sumen3 = sumen3 + S3re**2.0+S3im**2.0
+  120     continue
+  110    continue
+         write(*,*)'...still busy...', N3-1-j3
+         write(58,*)'...still busy...', N3-1-j3
+  100   continue
+
+!     INVERSE FOURIER TRANSFORM -> from wavenumber to real space      
+      write(*,*) 
+      write(*,*) 'Calculate time series using inverse Fourier Transform'
+      write(*,*) 
+      write(58,*)
+      write(58,*)'Calculate time series using inverse Fourier Transform'
+      write(58,*) 
+      write(*,*) 'Now doing fourn ...'
+      write(*,*)
+      write(58,*) 'Now doing fourn ...'
+      write(58,*)
+
+!     OMP parallelization of IFFT routine
+      call omp_set_num_threads( 3 )
+!$omp parallel 
+!$omp sections
+!$omp section
+        write(*,*)'u-component'
+        write(*,*)
+        write(58,*)'u-component'
+        write(58,*)
+        call fourn(data1,nn,3,-1)
+        write(*,*)'... DONE'
+        write(*,*)
+        write(58,*)'... DONE'
+        write(58,*)
+!$omp section
+        write(*,*)'v-component'
+        write(*,*)
+        write(58,*)'v-component'
+        write(58,*) 
+        call fourn(data2,nn,3,-1) 
+        write(*,*)'... DONE'
+        write(*,*)
+        write(58,*)'... DONE'
+        write(58,*)
+!$omp section
+        write(*,*)'w-component'
+        write(*,*)
+        write(58,*)'w-component'
+        write(58,*)
+        call fourn(data3,nn,3,-1)
+        write(*,*)'... DONE'
+        write(*,*)
+        write(58,*)'... DONE'
+        write(58,*)
+!$omp end sections
+!$omp end parallel
+
+!     DEFINED VARIANCE OF WIND FIELD
+      checkvarlimit = 5.82d0
+      dustar = 0.05d0
+
+!     CALCULATE VALUES OF THE GUSTBOX
+!     Dimensions of gustbox                     
+      B1 = 10.0
+      B2 = 10.0
+      B3 = 10.0
+      xlength = 100.0
+!     Lower end of gustbox
+      zgb = 22.5
+!     Define gust speed for folding simulation
+!     Lower gust speed
+      lgs = 7.0
+!     Upper gust speed
+      ugs = 8.0
+!     Length to check before and after defined gust
+      checkl =  int(xlength/d1)
+
+      n1b = int(B1/d1)
+      n2b = int(B2/d2)
+      n3b = int(B3/d3)
+      n123b = n1b * n2b * n3b
+      j2a = int(N2out/2)-int(n2b/2)
+      j2e = j2a + n2b     
+
+      j3a = int(zgb/d3)
+      j3e = j3a + n3b      
+
+      j1a = 1
+      j1e = j1a + n1b
+      j1am = 0
+      j1em = 0
+      ugustm = 0.0
+  
+      do 929 j1d=1,N1-n1b-2  
+      ugust = 0.0
+        
+       do 901 j3= j3a,j3e
+        do 911 j2= j2a,j2e
+         do 921 j1= j1a,j1e
+          
+           il=j1+(j2-1)*nn(1)+(j3-1)*nn(2)*nn(1)
+           il=2*il-1
+
+!           ugust= ugust + (sqrt((data1(il))**2.0+(data2(il))**2.0
+!     &                  + (data3(il))**2.0))/n123b
+           ugust = ugust + data1(il)/n123b
+                         
+  921    continue
+  911   continue
+  901  continue
+  
+!         write(58,*)'ugust, j1a----', ugust,j1a
+!         write(*,*) 'ugust, j1a----', ugust,j1a
+
+         gustarray(j1d)= ugust           
+ 
+       if (iopt.eq.2) then
+        if (ugust.gt.ugustm) then
+          ugustm = ugust
+          j1am = j1a
+          j1em = j1e
+          write(58,*)'MAX BOX ugustm, j1a----', ugustm,j1am
+          write(*,*) 'MAX BOX ugustm, j1a----', ugustm,j1am
+        endif 
+       endif
+        
+        j1a = j1a + 1
+        j1e = j1e + 1     
+  
+  929  continue
+       
+       if (iopt.eq.1) then
+        usegust = 0
+        do 9299 j1d=1,N1-n1b-2 
+         if ((j1d.gt.checkl).and.(j1d.lt.(N1-n1b-2-checkl))
+     &    .and.(usegust.eq.0)) then
+          if ((gustarray(j1d).gt.lgs).and.(gustarray(j1d).lt.ugs))then
+           usegust = 1
+           j1am = j1d
+           do 928 i=j1d-checkl,j1d+checkl
+             if (gustarray(i).gt.ugs) then
+              usegust = 0
+!             ugustm = gustarray(j1d)
+            endif
+928      continue
+          endif
+         endif
+9299    continue
+        if (usegust.eq.1) then
+          ugustm = gustarray(j1am)
+          iterende = 1
+          write(58,*)'Defined gust in box ugustm, j1a', ugustm,j1am
+          write(*,*) 'Defined gust in box ugustm, j1a', ugustm,j1am
+         goto 121
+        endif
+        endif
+
+
+
+      if (iopt.eq.3) then
+       call statistics_nowrite(data1,data2,data3,N1out,N2out,N3out,
+     &           nn,sumen1,sumen2,sumen3)
+         
+         checkvar = sqrt(0.5*sumen1)
+         if (checkvar.lt.checkvarlimit) then
+          ustar = ustar + dustar
+          fak = 3.2 * (ustar**2.d0)/(z**0.6666)*(L**1.6666)
+         else
+          iterende = 1
+          goto 121
+         endif
+       endif
+
+!     GUST BOX
+       write(58,*)'----------------------------------------------'
+       write(58,*)' Search gust event'
+       write(58,*)' Iteration step, Max iteration', iter, maxiter
+      if (iopt.le.2) then
+       write(58,*)' Mean wind speed in gustbox---', ugustm
+      else 
+       write(58,*)' RMS(u) of wind field-------', checkvar
+       write(58,*)' RMS(u) limit---------------', checkvarlimit
+       write(58,*)' ustar, dustar--------------', ustar, dustar
+      endif
+       write(*,*)'-----------------------------------------------'
+       write(*,*)' Search gust event'
+       write(*,*)' Iteration step, Max iteration', iter, maxiter
+      if (iopt.le.2) then
+       write(*,*)' Mean wind speed in gustbox---', ugustm
+      else 
+       write(*,*)' RMS(u) of wind field-------', checkvar
+       write(*,*)' RMS(u) limit---------------', checkvarlimit
+       write(*,*)' ustar, dustar--------------', ustar, dustar
+      endif
+121   continue
+   
+      if ((ugustm.gt.ugustms).or.(checkvar.ge.checkvarlimit)) then
+         ugustms = ugustm
+         j1ams = j1am      
+       
+       write(58,*)'-------------------------------------------------'
+       write(58,*)' Gust event information'
+       write(58,*)' Iteration step, Max iteration', iter, maxiter     
+       if (iopt.eq.1) then
+        write(58,*)' Size of box, nbx,nby,nbz', n1b,n2b,n3b
+        write(58,*)' Size of box, B1, B2, B3', B1, B2, B3
+        write(58,*)' Lower z-Coord, z-index,', zgb, j3a
+       write(58,*)' Start x, Index: j1ams,Distance: Lxs', j1ams,j1ams*d1
+        write(58,*)' Start y, Index:j2a, Ende, j2e', j2a,j2e
+        write(58,*)'Defined Gust event',ugustm,' between',lgs,'and',ugs
+       endif
+       if (iopt.eq.2)then
+        write(58,*)' Size of box, nbx,nby,nbz', n1b,n2b,n3b
+        write(58,*)' Size of box, B1, B2, B3', B1, B2, B3
+        write(58,*)' Lower z-Coord, z-index,', zgb, j3a
+       write(58,*)' Start x, Index: j1ams,Distance: Lxs', j1ams,j1ams*d1
+        write(58,*)' Start y, Index:j2a, Ende, j2e', j2a,j2e
+        write(58,*)' Maximum gust', ugustms
+       endif
+      if (iopt.eq.3)then
+        write(58,*)' RMS(u) limit', checkvarlimit
+        write(58,*)' Calculated RMS(u)', checkvar
+        write(58,*)' ustar, dustar', ustar,dustar
+      endif
+
+       write(*,*)'--------------------------------------------------'
+       write(*,*)' Gust event information'
+       write(*,*)' Iteration step, Max iteration', iter, maxiter
+       if (iopt.eq.1) then
+        write(*,*)' Size of box, nbx,nby,nbz', n1b,n2b,n3b       
+        write(*,*)' Size of box, B1, B2, B3', B1, B2, B3
+        write(*,*)' Lower z-Coord, z-index,', zgb, j3a
+        write(*,*)' Start x, Index: j1ams,Distance: Lxs', j1ams,j1ams*d1
+        write(*,*)' Start y, Index:j2a, Ende, j2e', j2a,j2e
+        write(*,*)'Defined Gust event',ugustm, 'between',lgs,'and',ugs
+       endif
+       if (iopt.eq.2)then
+        write(*,*)' Size of box, nbx,nby,nbz', n1b,n2b,n3b       
+        write(*,*)' Size of box, B1, B2, B3', B1, B2, B3
+        write(*,*)' Lower z-Coord, z-index,', zgb, j3a
+        write(*,*)' Start x, Index: j1ams,Distance: Lxs', j1ams,j1ams*d1
+        write(*,*)' Start y, Index:j2a, Ende, j2e', j2a,j2e
+        write(*,*)' Maximum gust', ugustms
+       endif
+      if (iopt.eq.3)then
+        write(*,*)' RMS(u) limit', checkvarlimit
+        write(*,*)' Calculated RMS(u)', checkvar
+        write(*,*)' ustar, dustar', ustar,dustar
+      endif
+ 
+
+    
+
+!     WRITE OUTPUT FILES
+        write(*,*) 'Write output files'
+        write(*,*)
+        write(58,*) 'Write output files'
+        write(58,*)      
+
+!     - Add mean wind speed
+!     - Velocity uz
+        uz = uref * (z/zref)**alfa      
+!     - Timestep (Taylor´s Hypothesis valid)
+        dt = d1/umeanz
+!     - Time history points
+        thp = N2out*N3out
+                
+!     - Write output files for PAM Flow module
+!     - Wind mesh
+        ypmin = 0.0
+        ypmax = N2out*d2
+        zpmin = 0.0
+        zpmax = N3out*d3
+        
+        tsim = dt
+
+ 
+!xxxxxxxx used for debugging   xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+!!     WRITE DATA IN IFFT.DAT TO CHECK RESULTS   
+!      do 9000 j3= 1,N3out
+!       do 9100 j2= 1,N2out
+!        do 9200 j1= 1,N1out           
+!           il=j1+(j2-1)*nn(1)+(j3-1)*nn(2)*nn(1)
+!           il=2*il-1          
+!           write(22,*) j1,j2,j3,il,il+1,data1(il),data1(il+1)
+!!     &      data2(il),data2(il+1),data3(il),data3(il+1)                      
+! 9200    continue
+! 9100   continue
+! 9000  continue     
+!xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx           
+ 
+!     PAM Flow OUTPUT--------------------------------------------------
+!        open(unit=55 ,file='u_out',ACCESS='DIRECT',FORM='FORMATTED'     
+!     &       ,RECL=12,status='unknown')
+!        open(unit=56 ,file='v_out',ACCESS='DIRECT',FORM='FORMATTED'     
+!     &       ,RECL=12,status='unknown')
+!        open(unit=57,file='w_out',ACCESS='DIRECT',FORM='FORMATTED'    
+!     &       ,RECL=12,status='unknown')
+
+        open(unit=15,file='windinfo.dat',status='unknown')
+         
+        open(unit=80,file='windfield.vtk',status='unknown')
+
+        open(unit=11,file='statistics.dat')
+!        open(unit=13,file='test.txt')
+
+!      Write windinfo.dat file
+          write(15,*)'-thp--ntstep----------dt' 
+          write(15,'(i5,i8,f12.6)') thp, N1out,dt
+          write(15,*)'-ity----------dy-------ywmin-------ywmax'
+          write(15,'(i5,3f12.4)') N2out,d2,ypmin,ypmax
+          write(15,*)'-itz----------dz-------zwmin-------zwmax'
+          write(15,'(i5,3f12.4)') N3out+1,d3,zpmin,zpmax
+          write(15,*)'-------uref--------zref--------alfa-ivalue-iflag'
+          write(15,'(3f12.6,2i3)') uref, zref, alfa, ivalue,iflag
+          write(15,*)'------umeanz----------d1---------zb÷'
+          write(15,'(3f12.4)') umeanz, d1,z
+          write(15,*)'-------------------------------------------------'
+          write(15,*)' Gust event information'
+          write(15,*)' Size of box, nbx,nby,nbz', n1b,n2b,n3b
+          write(15,*)' Size of box, B1, B2, B3', B1, B2, B3
+          write(15,*)' Lower z-Coord, z-index', zgb, j3a
+          write(15,*)' Startindex x:j1ams,Distance: Lxs', j1ams,j1ams*d1
+          write(15,*)' Start y, Index:j2a, Ende, j2e', j2a,j2e
+          if (iopt.eq.1) then
+          write(15,*)'Defined Gust event',ugustm,'between',lgs,'and',ugs
+          endif
+          if (iopt.eq.2)then
+            write(15,*)' Maximum gust', ugustms
+          endif 
+
+!      Write output files
+!       iw = 1
+!       n = 1
+
+!       write(*,*)'PAM Flow output'
+!       write(*,*)
+!       write(58,*)'PAM Flow output'
+!       write(58,*)               
+!        do 1400 j1=1,N1out
+!         do 1500 j2=1,N2out
+!          do 1600 j3=0,N3out
+
+!          Interpolation at z=0 between u(d3/2) and -u(d3/2)                        
+!             if (j3.eq.0) then
+!             il=j1+(j2-1)*nn(1)+(j3-1+1)*nn(2)*nn(1)
+!             il=2*il-1
+
+!              
+!              write(55,'(f12.6)',rec=n)  -data1(il)
+!              write(56,'(f12.6)',rec=n)  -data2(il)
+!              write(57,'(f12.6)',rec=n)  -data3(il)
+              
+!xxxxxxxx used for debugging   xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+!!     Temporre out files to check direct access routines                
+!              write(8,'(3i5,2f12.6)')  -data1(il)
+!              write(9,'(3i5,2f12.6)')  -data2(il)
+!              write(10,'(3i5,2f12.6)') -data3(il)                         
+!!        Write in bug.dat              
+!              write(20,'(2i8)') il, n
+!xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx              
+!             else 
+!              il=j1+(j2-1)*nn(1)+(j3-1)*nn(2)*nn(1)
+!              il=2*il-1
+
+
+!              write(55,'(f12.6)',rec=n) data1(il)
+!              write(56,'(f12.6)',rec=n) data2(il)
+!              write(57,'(f12.6)',rec=n) data3(il)
+              
+!xxxxxxxx used for debugging   xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx              
+!!     Temporre out files to check direct access routines              
+!              write(8,'(3i5,2f12.6)')  data1(il)
+!              write(9,'(3i5,2f12.6)')  data2(il)
+!              write(10,'(3i5,2f12.6)') data3(il)
+!
+!!            Write in bug.dat              
+!              write(20,'(2i8)') il, n
+!xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx 
+              
+!             endif
+           
+!             n = n + 1
+             
+!1600       continue
+!1500     continue
+!         tsim = tsim + dt
+!         if (j1.eq.iw*10) then
+!            write(*,*) '....',j1*dt,'of',N1out*dt,   
+!     &                                               'sec written'
+!            write(58,*) '....',j1*dt,'of',N1out*dt,   
+!     &                                               'sec written'
+!            iw=iw+1
+!         endif     
+!1400   continue
+
+
+! OpenFOAM out file  
+        if (iout.eq.1) then     
+           write(*,*)
+           write(*,*) 'Write OpenFOAM output'
+           write(*,*)
+           write(58,*)
+           write(58,*) 'Write OpenFOAM output'
+           write(58,*) 
+           open(unit=88,file='points',status='unknown')
+
+!       write(88,'(a)') 'FoamFile'
+!       write(88,'(a)') '{'
+!       write(88,'(a)') '   version     2.0;'
+!       write(88,'(a)') '   format      ascii;'
+!       write(88,'(a)') '   class       vectorField;'
+!       write(88,'(a)') '   object      points;'
+!       write(88,'(a)') '}'
+
+!      write(88,'(a,I10,1x,a)')'POINTS',N1*N2*N3,'float' 
+       write(88,'(a)') '// Points'
+       write(88,'(I10)')N2out*N3out
+       write(88,'(a)') '('     
+      do 10 i2=1,N2out
+       do 20 i3=1,N3out
+!        do 30 i1=1,N1       
+!          write(80,'(3f12.4)') (i1-1)*d1, (i2-1) * d2, (i3-1) * d3       
+           write(88,'(a,3f12.6,a)') '(',xinlet, yinlet + (i2-1) * d2,
+     &                                          zinlet + (i3-1) * d3,')'
+!  30    continue
+ 20    continue      
+10    continue      
+      write(88,*)
+      write(88,'(a)') ')'
+      close(88)
+
+!     write Point or Cell data    
+      iw=1
+      tsim=0.0
+      do 3400 j1=1,N1out
+        
+        write(UNIT=mkdirname,FMT=9000) tsim
+9000    FORMAT('mkdir ',(f12.6))
+
+       mkdirname2='mkdir 000000000000'
+      is2 = 7 
+      do 3421 is=7,18
+         
+        if(mkdirname(is:is).ne.' ') then
+           mkdirname2(is2:is2)=mkdirname(is:is)
+          is2=is2 + 1
+        endif
+3421   continue
+
+        call system(mkdirname2)      
+      
+        write(UNIT=cddirname,FMT=9001) tsim
+9001    FORMAT((f12.6),'/U')
+        cddirname2='000000000000/U'
+        is2 = 1
+        do 3422 is=1,12
+        if(cddirname(is:is).ne.' ') then
+           cddirname2(is2:is2)=cddirname(is:is)
+           is2=is2 + 1
+        endif
+3422   continue
+ 
+        write(*,*) cddirname2
+        write(*,*) 
+        write(58,*) cddirname2
+        write(58,*) 
+        
+        open(unit=99,file=cddirname2,status='unknown') 
+!        write(99,'(a)') 'FoamFile'
+!        write(99,'(a)') '{'
+!        write(99,'(a)') '   version     2.0;'
+!        write(99,'(a)') '   format      ascii;'
+!        write(99,'(a)') '   class       vectorAverageField;'
+!        write(99,'(a)') '   object      values;'
+!        write(99,'(a)') '}'
+!        write(99,'(a)') '// Average'
+!        write(99,'(a)') '(0 0 0)'
+
+        write(99,'(a)') '// Data on points'
+        write(99,'(I10)')N2out*N3out
+        write(99,'(a)') '('
+      
+      
+        do 1404 j2=1,N2out
+         do 1505 j3=1,N3out
+
+           il=j1+(j2-1)*nn(1)+(j3-1)*nn(2)*nn(1)
+           il=2*il-1
+           if(j3.eq.1) then             
+            write(99,'(a,3f12.4,a)') '(',0.0,0.0,0.0,')'
+           else
+           write(99,'(a,3f12.4,a)') '(',uref*((j3-1)*d3/zref)**alfa+ 
+     &                            data1(il),data2(il),data3(il),')'
+           endif
+
+1505     continue
+1404   continue          
+       write(99,'(a)') ')'      
+       close(99)
+       tsim = tsim + dt
+3400   continue
+       write(*,*) '...DONE'
+       write(*,*) 
+       write(58,*) '...DONE'
+       write(58,*) 
+       
+       endif
+
+! VTK output
+        write(*,*)
+        write(*,*) 'Write VTK out file for PARAVIEW'
+        write(*,*)
+        write(58,*)
+        write(58,*) 'Write VTK out file for PARAVIEW'
+        write(58,*)     
+        call vtkout(N1vtk,N2out,N3out,d1,d2,d3,nn,dt,data1,data2,data3, 
+     &               uref,zref,alfa) 
+        write(*,*) '...DONE'
+        write(*,*) 
+        write(58,*) '...DONE'
+        write(58,*)  
+
+!xxxxxxxx 11.11.2015   xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx         
+!!      OUTPUT FOR CSD SIMULATION  
+!!        write(13,*) 'write output for csd simulation'      
+!        n = 1        
+!        do 1491 j3=1,N3out
+!         do 1591 j2=1,N2out
+!          tsim=dt
+!          do 1691 j1=1,N1out
+!!!           read(55,'(3i5,2f12.4)',rec=n) item,jtem,iktem,tsimtem,data1tem
+!!!              write(14,'(3i5,2f12.6)') item,jtem,iktem,tsimtem,data1tem
+!             n = n + 1
+!           il=j1+(j2-1)*nn(1)+(j3-1)*nn(2)*nn(1)
+!           il=2*il-1
+!!            if(j3.eq.1) then             
+!!           write(13,'(a,3f12.4,a)') '(',0.0,0.0,0.0,')'
+!!            matrix(j3,j1) = 0.0            
+!!            write(13,'(3f12.4)') 0.0,0.0,0.0
+!!            else
+!!           matrix(j3,j1) = uref*((j3-1)*d3/zref)**alfa
+!
+!!           Wind speed profile according to EC
+!!           Roughness length z0EC
+!!            z0EC = 0.01
+!!           Terrain factor krEC
+!!            krEC=0.19*(z0EC/0.05)**0.07
+!!           Roughness factor crzEC
+!!            crzEC=krEC*log((j3)*d3/z0EC)
+!!            crzEC=dlog((j3-1)*d3)
+!            
+!!           Basic wind speed EC
+!!            vbasicEC=uref
+!!           Mean wind speed vmzEC
+!!            umzEC=crzEC*vbasicEC
+!             umzEC=uref*((j3-1)*d3/zref)**alfa
+!!           Standard deviation sdEC
+!!            sdEC=krEC*vbasicEC
+!!           Turbulence intensity IvEC
+!!            IvEC=1/(log((j3)*d3/z0EC))
+            
+!!           Peak velocity pressure
+!!            qpzEC=(1+7*IvEC)*(0.5*1.25*umzEC)**2.0
+!!           Peak velocity
+!!            vpzEC=sqrt(2*qpEC/1.25)
+
+!!           Write wind speeds accord to EC
+!!           write(13,'(3f12.4)')  uref*((j3-1)*d3/zref)**alfa+ 
+!!     &                            data1(il),data2(il),data3(il)
+!!           Write wind speeds accord to SBC
+!          write(13,'(4f12.4)') umzEC,umzEC+data1(il),data2(il),data3(il)
+
+
+!           endif
+!           tsim=tsim + dt
+!1691       continue
+
+!         write(13,*) 'new height'      
+!1591     continue
+!1491   continue
+
+
+!          tsim=dt
+
+!            write(13,'(2a,40f12.4)') ' ','tsim',((j3-1)*d3,j3=1,N3out+1)
+
+!          do 1692 j1=1,N1out
+!           if(j3.eq.1) then             
+!           write(13,'(a,3f12.4,a)') matrix(j3,j1) 
+!           else
+!            write(13,'(40f12.4)') tsim,(matrix(j3,j1),j3=1,N3out+1)
+!           endif
+!           tsim=tsim + dt
+!1692      continue
+
+
+
+
+!xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+!       Write output files to test spectral distribution with FLEXPRO
+!        write(*,*)
+!        write(*,*) 'Write test.txt file to check spectral distribution'
+!        write(*,*)
+!        write(58,*)
+!        write(58,*) 'Write test.txt file to check spectral distribution'
+!        write(58,*)    
+!        j3= 1
+!        j2= 1
+!        tsim = dt
+!          do 920 j1= 1,N1out
+!           il=j1+(j2-1)*nn(1)+(j3-1)*nn(2)*nn(1)
+!           il=2*il-1
+
+!           write(13,'(3i5,4f12.4,i5)') j1,j2,j3,tsim,data1(il)
+!     &                                ,data2(il), data3(il)
+!            tsim = tsim + dt
+!  920    continue
+!xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx     
+        
+        write(*,*) '...DONE'
+        write(*,*) 
+        write(58,*) '...DONE'
+        write(58,*)   
+ 
+!    STATISTICS OF WIND MESH
+        write(*,*) 'Write statistics.dat file'
+        write(*,*)
+        write(58,*) 'Write statistics.dat file'
+        write(58,*) 
+
+
+        call statistics(data1,data2,data3,N1out,N2out,N3out,
+     &           nn,sumen1,sumen2,sumen3)
+
+
+!!     STATISTICS OF WIND MESH      
+        call randomstatistics(N1,N2,N3,xn2check)
+        write(58,*)'...DONE'
+        write(58,*)
+        write(*,*) '...DONE'
+        write(*,*)
+        write(*,*) 
+        write(*,*) 'Iteration finish'
+        write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++'
+        write(58,*)
+        write(58,*)'Iteration finish' 
+        write(58,*)'++++++++++++++++++++++++++++++++++++++++++++'
+      
+        close(11)
+        close(13)
+        close(55)
+        close(56)
+        close(57)
+        close(15) 
+        close(80)
+
+       endif
+        if (iterende.eq.1) then
+         goto 122
+        endif
+11     continue
+
+
+!xxxxxxxx used for debugging   xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx            
+!       close(8)
+!       close(9)
+!       close(10)
+!       close(14)
+!       close(20)
+!        close(21)
+!       close(22)
+!xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx            
+
+!     write log file       
+122   continue
+      close(58)
+     
+             
+
+      end
+
+! --------------------------------------------------------------------      
+      real*8 function E(k,L,fak)
+      
+        
+        real*8 k
+        real*8 fak
+        real*8 L
+     
+        if (k.eq.0) then
+          E = 0.0
+         else
+!         v. Karman 3D isotropic Energy Spectrum      
+          E =fak*L**4.d0*k**4.d0/((1.d0 + (L**2.d0*k**2.d0))**2.833333)
+        endif 
+        return
+        end
+      
+!---------------------------------------------------------------------
+      subroutine statistics(data1,data2,data3,N1,N2,N3,
+     &      nn,sumen1,sumen2,sumen3)
+      
+      integer*4 n1bmax,n2bmax,n3bmax
+      PARAMETER(n1bmax=100,n2bmax=100,n3bmax=100)
+!     ARRAYS
+!     - real     
+        real data1(*)
+        real data2(*)
+        real data3(*)    
+        real umean(0:14,0:14,0:14),uvar(0:14,0:14,0:14)
+        real vmean(0:14,0:14,0:14),vvar(0:14,0:14,0:14)
+        real wmean(0:14,0:14,0:14),wvar(0:14,0:14,0:14)
+        real uw(0:14,0:14,0:14),uv(0:14,0:14,0:14),vw(0:14,0:14,0:14)
+
+
+!     - integer
+        integer nn(*)
+      
+!     VARIABLES
+!     - real
+        real*8 meantot1re, meantot2re, meantot3re
+        real*8 meantot1im, meantot2im, meantot3im
+
+        real*8 vartot1re,vartot2re,vartot3re
+        real*8 vartot1im,vartot2im,vartot3im
+
+        real*8 uwtot, uvtot, vwtot
+        real*8 sumen1,sumen2,sumen3
+
+!     - integer    
+        integer*8 i,il
+        integer*4 j1,j2,j3,N1,N2,N3
+        
+               
+!     SET VALUES TO ZERO
+         umean(0,5,5) = 0.0
+         vmean(0,5,5) = 0.0
+         wmean(0,5,5) = 0.0
+      
+         uvar(0,5,5) = 0.0
+         vvar(0,5,5) = 0.0
+         wvar(0,5,5) = 0.0
+      
+         umean(0,7,7) = 0.0
+         vmean(0,7,7) = 0.0
+         wmean(0,7,7) = 0.0
+      
+         uvar(0,7,7) = 0.0
+         vvar(0,7,7) = 0.0
+         wvar(0,7,7) = 0.0
+      
+         umean(0,14,14) = 0.0
+         vmean(0,14,14) = 0.0
+         wmean(0,14,14) = 0.0
+      
+         uvar(0,14,14) = 0.0
+         vvar(0,14,14) = 0.0
+         wvar(0,14,14) = 0.0
+      
+         uw(0,5,5) = 0.0
+         uw(0,7,7) = 0.0
+         uw(0,14,14) = 0.0
+         uv(0,5,5) = 0.0
+         uv(0,7,7) = 0.0
+         uv(0,14,14) = 0.0
+         vw(0,5,5) = 0.0
+         vw(0,7,7) = 0.0
+         vw(0,14,14) = 0.0
+
+
+     
+!!     CALCULATE MEAN VALUE AT DISCRETE POINTS
+!!     Correlation coefficients: Reynolds stress 
+       do 900 j3= 1,N3
+         do 910 j2= 1,N2
+          do 920 j1= 1,N1
+           
+           il=j1+(j2-1)*nn(1)+(j3-1)*nn(2)*nn(1)
+           il=2*il-1
+           
+           if(j2.eq.5.and.j3.eq.5) then 
+
+            umean(0,5,5) = umean(0,5,5) + (data1(il))/N1
+            vmean(0,5,5) = vmean(0,5,5) + (data2(il))/N1
+            wmean(0,5,5) = wmean(0,5,5) + (data3(il))/N1
+            
+            uw(0,5,5) = uw(0,5,5) + data1(il)*data3(il)/N1
+            uv(0,5,5) = uv(0,5,5) + data1(il)*data2(il)/N1
+            vw(0,5,5) = vw(0,5,5) + data2(il)*data3(il)/N1
+
+           endif
+           
+           if(j2.eq.7.and.j3.eq.7) then         
+
+            umean(0,7,7) = umean(0,7,7) + (data1(il))/N1
+            vmean(0,7,7) = vmean(0,7,7) + (data2(il))/N1
+            wmean(0,7,7) = wmean(0,7,7) + (data3(il))/N1
+            
+            uw(0,7,7) = uw(0,7,7) + data1(il)*data3(il)/N1
+            uv(0,7,7) = uv(0,7,7) + data1(il)*data2(il)/N1
+            vw(0,7,7) = vw(0,7,7) + data2(il)*data3(il)/N1
+
+           endif
+           
+           if(j2.eq.14.and.j3.eq.14) then             
+
+            umean(0,14,14) = umean(0,14,14) + (data1(il))/N1
+            vmean(0,14,14) = vmean(0,14,14) + (data2(il))/N1
+            wmean(0,14,14) = wmean(0,14,14) + (data3(il))/N1
+            
+            uw(0,14,14) = uw(0,14,14) + data1(il)*data3(il)/N1
+            uv(0,14,14) = uv(0,14,14) + data1(il)*data2(il)/N1
+            vw(0,14,14) = vw(0,14,14) + data2(il)*data3(il)/N1
+
+           endif
+                   
+            il=il+1
+            tsim = tsim + dt
+            i=i+1
+ 
+  920    continue
+  910   continue
+  900  continue      
+
+!     CALCULATE VARIANCE AT DISCRETE POINTS
+       do 9000 j3= 1,N3
+         do 9100 j2= 1,N2
+          do 9200 j1= 1,N1
+           
+           il=j1+(j2-1)*nn(1)+(j3-1)*nn(2)*nn(1)
+           il=2*il-1
+           
+           if(j2.eq.5.and.j3.eq.5) then 
+
+            uvar(0,5,5) = uvar(0,5,5) + (data1(il)-umean(0,5,5))**2.0
+            vvar(0,5,5) = vvar(0,5,5) + (data2(il)-vmean(0,5,5))**2.0
+            wvar(0,5,5) = wvar(0,5,5) + (data3(il)-wmean(0,5,5))**2.0
+
+          endif
+          
+          if(j2.eq.7.and.j3.eq.7) then
+
+            uvar(0,7,7) = uvar(0,7,7) + (data1(il)-umean(0,7,7))**2.0
+            vvar(0,7,7) = vvar(0,7,7) + (data2(il)-vmean(0,7,7))**2.0
+            wvar(0,7,7) = wvar(0,7,7) + (data3(il)-wmean(0,7,7))**2.0
+
+          endif
+          
+          if(j2.eq.14.and.j3.eq.14) then
+
+           uvar(0,14,14) = uvar(0,14,14)+(data1(il)
+     &                -umean(0,14,14))**2.0
+           vvar(0,14,14) = vvar(0,14,14)+(data2(il)
+     &                -vmean(0,14,14))**2.0
+           wvar(0,14,14) = wvar(0,14,14)+(data3(il)
+     &                 -wmean(0,14,14))**2.0
+          endif
+          
+            il=il+1
+            tsim = tsim + dt
+            i=i+1
+ 
+ 9200    continue
+ 9100   continue
+ 9000  continue      
+
+!        u-component     
+          uvar(0,5,5) = uvar(0,5,5)/N1
+          uvar(0,7,7) = uvar(0,7,7)/N1
+          uvar(0,14,14) = uvar(0,14,14)/N1
+!        v-component       
+          vvar(0,5,5) = vvar(0,5,5)/N1
+          vvar(0,7,7) = vvar(0,7,7)/N1
+          vvar(0,14,14) = vvar(0,14,14)/N1
+!        w-component       
+          wvar(0,5,5) = wvar(0,5,5)/N1
+          wvar(0,7,7) = wvar(0,7,7)/N1
+          wvar(0,14,14) = wvar(0,14,14)/N1
+
+!        Correlation coefficients: Reynolds stress 
+!        uw-component      
+          uw(0,5,5) = uw(0,5,5)/sqrt(uvar(0,5,5)*wvar(0,5,5))
+          uw(0,7,7) = uw(0,7,7)/sqrt(uvar(0,7,7)*wvar(0,7,7))
+          uw(0,14,14) = uw(0,14,14)/sqrt(uvar(0,14,14)*wvar(0,14,14))
+          
+          uv(0,5,5) = uv(0,5,5)/sqrt(uvar(0,5,5)*vvar(0,5,5))
+          uv(0,7,7) = uv(0,7,7)/sqrt(uvar(0,7,7)*vvar(0,7,7))
+          uv(0,14,14) = uv(0,14,14)/sqrt(uvar(0,14,14)*vvar(0,14,14))
+          
+          vw(0,5,5) = vw(0,5,5)/sqrt(vvar(0,5,5)*wvar(0,5,5))
+          vw(0,7,7) = vw(0,7,7)/sqrt(vvar(0,7,7)*wvar(0,7,7))
+          vw(0,14,14) = vw(0,14,14)/sqrt(vvar(0,14,14)*wvar(0,14,14))
+
+!     CALCULATE MEAN AND VARIANCE OF TOTAL WIND FIELD
+
+          meantot1re = 0.0
+          meantot2re = 0.0
+          meantot3re = 0.0
+          meantot1im = 0.0
+          meantot2im = 0.0
+          meantot3im = 0.0
+
+       do 1300 j3=1,N3
+          do 1200 j2=1,N2
+            do 1100 j1=1,N1
+            il=j1+(j2-1)*nn(1)+(j3-1)*nn(2)*nn(1)
+            il=2*il-1
+!     --> Berechnung aus Realteil des komplexen FOURN Ergebnisses
+        
+            meantot1re = meantot1re + data1(il)/(N1*N2*N3)
+            meantot2re = meantot2re + data2(il)/(N1*N2*N3)
+            meantot3re = meantot3re + data3(il)/(N1*N2*N3)
+
+!     --> Berechnung Imaginrteil des komplexen FOURN Ergebnisses
+          il=il+1
+
+     
+            meantot1im = meantot1im + data1(il)/(N1*N2*N3)
+            meantot2im = meantot2im + data2(il)/(N1*N2*N3)
+            meantot3im = meantot3im + data3(il)/(N1*N2*N3)
+
+1100        continue
+1200      continue
+1300    continue
+
+         vartot1re=0.0
+         vartot2re=0.0
+         vartot3re=0.0
+         vartot1im=0.0
+         vartot2im=0.0
+         vartot3im=0.0
+       do 13200 j3=1,N3
+          do 12200 j2=1,N2
+            do 11200 j1=1,N1
+            il=j1+(j2-1)*nn(1)+(j3-1)*nn(2)*nn(1)
+            il=2*il-1
+!     --> Berechnung aus Realteil des komplexen FOURN Ergebnisses
+
+            vartot1re = vartot1re+(data1(il)-meantot1re)**2.0/(N1*N2*N3)
+            vartot2re = vartot2re+(data2(il)-meantot2re)**2.0/(N1*N2*N3)
+            vartot3re = vartot3re+(data3(il)-meantot3re)**2.0/(N1*N2*N3)
+!     --> Berechnung Imaginrteil des komplexen FOURN Ergebnisses          
+            il=il+1
+
+            vartot1im = vartot1im+(data1(il)-meantot1im)**2.0/(N1*N2*N3)
+            vartot2im = vartot2im+(data2(il)-meantot2im)**2.0/(N1*N2*N3)
+            vartot3im = vartot3im+(data3(il)-meantot3im)**2.0/(N1*N2*N3)
+
+11200       continue
+12200     continue
+13200   continue
+        
+        uwtot = 0.0
+        uvtot = 0.0
+        vwtot = 0.0
+       do 13201 j3=1,N3
+          do 12201 j2=1,N2
+            do 11201 j1=1,N1
+            il=j1+(j2-1)*nn(1)+(j3-1)*nn(2)*nn(1)
+            il=2*il-1
+!     --> Berechnung aus Realteil des komplexen FOURN Ergebnisses
+
+            uwtot = uwtot +  data1(il)*data3(il)/(N1*N2*N3)
+            uvtot = uvtot +  data1(il)*data2(il)/(N1*N2*N3)
+            vwtot = vwtot +  data2(il)*data3(il)/(N1*N2*N3)
+                     
+            il=il+1
+11201       continue
+12201     continue
+13201   continue
+
+           uwtot = uwtot/sqrt(vartot1re*vartot3re)
+           uvtot = uvtot/sqrt(vartot1re*vartot2re)
+           vwtot = vwtot/sqrt(vartot2re*vartot3re)
+
+!     WRITE STATISTICS
+        write(11,*) 
+        write(11,*) '--------------------------------------------------'    
+        write(11,*) 'Check statistics of wind mesh'
+        write(11,*) '--------------------------------------------------'
+
+!       u-component           
+        write(11,*)
+        write(11,*) 'u- component'
+        write(11,*)        
+        write(11,*) 'umean(x,5,5)    -->', umean(0,5,5)
+        write(11,*) 'umean(x,7,7)    -->', umean(0,7,7)
+        write(11,*) 'umean(x,14,14)    -->', umean(0,14,14)
+        write(11,*)      
+        write(11,*) 'uvar(x,7,7)     -->', uvar(0,7,7)
+        write(11,*) 'uvar(x,5,5)     -->', uvar(0,5,5)
+        write(11,*) 'uvar(x,14,14)     -->', uvar(0,14,14)
+        write(11,*) '---------------------'
+       write(11,*) 'uvar-->',(uvar(0,14,14)+uvar(0,5,5)+uvar(0,14,14))/3
+        write(11,*)
+        write(11,*) 'ustd(x,5,5)     -->', sqrt(uvar(0,5,5))
+        write(11,*) 'ustd(x,7,7)     -->', sqrt(uvar(0,7,7))
+        write(11,*) 'ustd(x,14,14)     -->', sqrt(uvar(0,14,14))
+
+!       v-component            
+        write(11,*)     
+        write(11,*) 'v- component'       
+        write(11,*)
+        write(11,*) 'vmean(x,5,5)    -->', vmean(0,5,5)
+        write(11,*) 'vmean(x,7,7)    -->', vmean(0,7,7)      
+        write(11,*) 'vmean(x,14,14)    -->', vmean(0,14,14)
+        write(11,*)
+        write(11,*) 'vvar(x,5,5)     -->', vvar(0,5,5)
+        write(11,*) 'vvar(x,7,7)     -->', vvar(0,7,7)
+        write(11,*) 'vvar(x,14,14)     -->', vvar(0,14,14)
+        write(11,*) '---------------------'
+       write(11,*) 'vvar-->',(vvar(0,14,14)+vvar(0,5,5)+vvar(0,14,14))/3
+        write(11,*)
+        write(11,*) 'vstd(x,5,5)     -->', sqrt(vvar(0,5,5))
+        write(11,*) 'vstd(x,7,7)     -->', sqrt(vvar(0,7,7))
+        write(11,*) 'vstd(x,14,14)     -->', sqrt(vvar(0,14,14))
+
+!       w-component            
+        write(11,*)     
+        write(11,*) 'w- component'       
+        write(11,*)
+        write(11,*) 'wmean(x,5,5)    -->', wmean(0,5,5)
+        write(11,*) 'wmean(x,7,7)    -->', wmean(0,7,7)
+        write(11,*) 'wmean(x,14,14)    -->', wmean(0,14,14)
+        write(11,*)
+        write(11,*) 'wvar(x,5,5)     -->', wvar(0,5,5)
+        write(11,*) 'wvar(x,7,7)     -->', wvar(0,7,7)
+        write(11,*) 'wvar(x,14,14)     -->', wvar(0,14,14)
+        write(11,*) '---------------------'
+       write(11,*) 'wvar-->',(wvar(0,14,14)+wvar(0,5,5)+wvar(0,14,14))/3
+        write(11,*)
+        write(11,*) 'wstd(x,5,5)     -->', sqrt(wvar(0,5,5))
+        write(11,*) 'wstd(x,7,7)     -->', sqrt(wvar(0,7,7))
+        write(11,*) 'wstd(x,14,14)     -->', sqrt(wvar(0,14,14))
+
+!       Reynolds stress 
+        write(11,*)     
+        write(11,*) 'Reynoldsstress'        
+        write(11,*) 'uw(x,5,5)        -->', uw(0,5,5)
+        write(11,*) 'uw(x,7,7)        -->', uw(0,7,7)
+        write(11,*) 'uw(x,14,14)        -->', uw(0,14,14)
+        
+        write(11,*)     
+        write(11,*) 'Reynoldsstress'        
+        write(11,*) 'uv(x,5,5)        -->', uv(0,5,5)
+        write(11,*) 'uv(x,7,7)        -->', uv(0,7,7)
+        write(11,*) 'uv(x,14,14)        -->', uv(0,14,14)
+        
+        write(11,*)     
+        write(11,*) 'Reynoldsstress'        
+        write(11,*) 'vw(x,5,5)        -->', vw(0,5,5)
+        write(11,*) 'vw(x,7,7)        -->', vw(0,7,7)
+        write(11,*) 'vw(x,14,14)        -->', vw(0,14,14)
+        
+        write(11,*)'-----------------------------------'
+        write(11,*) 'Mean u of total field' , meantot1re
+        write(11,*) 'Mean v of total field' , meantot2re
+        write(11,*) 'Mean w of total field' , meantot3re
+        
+        write(11,*) 'Variance u of total field' , vartot1re
+        write(11,*) 'Variance v of total field' , vartot2re
+        write(11,*) 'Variance w of total field' , vartot3re
+        write(11,*)
+        write(11,*) 'Reynoldsstress of total field uw' , uwtot
+        write(11,*) 'Reynoldsstress of total field uv' , uvtot
+        write(11,*) 'Reynoldsstress of total field vw' , vwtot
+        write(11,*)'-----------------------------------'
+      
+!     CHECK ENERGY OF SPECTRAL TENSOR AND COMPARE TO VARIANCE   
+        write(11,*)
+        write(11,*) '-----------------------------------------------'
+        write(11,*) 'Check sum spectral energy equals variance'
+       write(11,*) 'Spectral Energy: Sum of S1reý+S1imý',sumen1
+       write(11,*) 'Spectral Energy: Sum of S2reý+S2imý',sumen2
+       write(11,*) 'Spectral Energy: Sum of S3reý+S3imý',sumen3
+       write(11,*)
+
+        write(11,*) 'Sum variance from timehistories:u1(Re)+u2(Im)'
+     &              , vartot1re+vartot1im
+        write(11,*) 'Sum variance from timehistories:v1(Re)+v2(Im)'
+     &              , vartot2re+vartot2im
+        write(11,*) 'Sum variance from timehistories:w1(Re)+w2(Im)'
+     &              , vartot3re+vartot3im
+      
+
+      return
+      end
+      
+!---------------------------------------------------------------------
+      subroutine statistics_nowrite(data1,data2,data3,N1,N2,N3,
+     &      nn,sumen1,sumen2,sumen3)
+      
+      integer*4 n1bmax,n2bmax,n3bmax
+      PARAMETER(n1bmax=100,n2bmax=100,n3bmax=100)
+!     ARRAYS
+!     - real     
+        real data1(*)
+        real data2(*)
+        real data3(*)    
+        real umean(0:14,0:14,0:14),uvar(0:14,0:14,0:14)
+        real vmean(0:14,0:14,0:14),vvar(0:14,0:14,0:14)
+        real wmean(0:14,0:14,0:14),wvar(0:14,0:14,0:14)
+        real uw(0:14,0:14,0:14),uv(0:14,0:14,0:14),vw(0:14,0:14,0:14)
+
+
+!     - integer
+        integer nn(*)
+      
+!     VARIABLES
+!     - real
+        real*8 meantot1re, meantot2re, meantot3re
+        real*8 meantot1im, meantot2im, meantot3im
+
+        real*8 vartot1re,vartot2re,vartot3re
+        real*8 vartot1im,vartot2im,vartot3im
+
+        real*8 uwtot, uvtot, vwtot
+        real*8 sumen1,sumen2,sumen3
+
+!     - integer    
+        integer*8 i,il
+        integer*4 j1,j2,j3,N1,N2,N3
+        
+               
+!     SET VALUES TO ZERO
+         umean(0,5,5) = 0.0
+         vmean(0,5,5) = 0.0
+         wmean(0,5,5) = 0.0
+      
+         uvar(0,5,5) = 0.0
+         vvar(0,5,5) = 0.0
+         wvar(0,5,5) = 0.0
+      
+         umean(0,7,7) = 0.0
+         vmean(0,7,7) = 0.0
+         wmean(0,7,7) = 0.0
+      
+         uvar(0,7,7) = 0.0
+         vvar(0,7,7) = 0.0
+         wvar(0,7,7) = 0.0
+      
+         umean(0,14,14) = 0.0
+         vmean(0,14,14) = 0.0
+         wmean(0,14,14) = 0.0
+      
+         uvar(0,14,14) = 0.0
+         vvar(0,14,14) = 0.0
+         wvar(0,14,14) = 0.0
+      
+         uw(0,5,5) = 0.0
+         uw(0,7,7) = 0.0
+         uw(0,14,14) = 0.0
+         uv(0,5,5) = 0.0
+         uv(0,7,7) = 0.0
+         uv(0,14,14) = 0.0
+         vw(0,5,5) = 0.0
+         vw(0,7,7) = 0.0
+         vw(0,14,14) = 0.0
+
+
+     
+!!     CALCULATE MEAN VALUE AT DISCRETE POINTS
+!!     Correlation coefficients: Reynolds stress 
+       do 900 j3= 1,N3
+         do 910 j2= 1,N2
+          do 920 j1= 1,N1
+           
+           il=j1+(j2-1)*nn(1)+(j3-1)*nn(2)*nn(1)
+           il=2*il-1
+           
+           if(j2.eq.5.and.j3.eq.5) then 
+
+            umean(0,5,5) = umean(0,5,5) + (data1(il))/N1
+            vmean(0,5,5) = vmean(0,5,5) + (data2(il))/N1
+            wmean(0,5,5) = wmean(0,5,5) + (data3(il))/N1
+            
+            uw(0,5,5) = uw(0,5,5) + data1(il)*data3(il)/N1
+            uv(0,5,5) = uv(0,5,5) + data1(il)*data2(il)/N1
+            vw(0,5,5) = vw(0,5,5) + data2(il)*data3(il)/N1
+
+           endif
+           
+           if(j2.eq.7.and.j3.eq.7) then         
+
+            umean(0,7,7) = umean(0,7,7) + (data1(il))/N1
+            vmean(0,7,7) = vmean(0,7,7) + (data2(il))/N1
+            wmean(0,7,7) = wmean(0,7,7) + (data3(il))/N1
+            
+            uw(0,7,7) = uw(0,7,7) + data1(il)*data3(il)/N1
+            uv(0,7,7) = uv(0,7,7) + data1(il)*data2(il)/N1
+            vw(0,7,7) = vw(0,7,7) + data2(il)*data3(il)/N1
+
+           endif
+           
+           if(j2.eq.14.and.j3.eq.14) then             
+
+            umean(0,14,14) = umean(0,14,14) + (data1(il))/N1
+            vmean(0,14,14) = vmean(0,14,14) + (data2(il))/N1
+            wmean(0,14,14) = wmean(0,14,14) + (data3(il))/N1
+            
+            uw(0,14,14) = uw(0,14,14) + data1(il)*data3(il)/N1
+            uv(0,14,14) = uv(0,14,14) + data1(il)*data2(il)/N1
+            vw(0,14,14) = vw(0,14,14) + data2(il)*data3(il)/N1
+
+           endif
+                   
+            il=il+1
+            tsim = tsim + dt
+            i=i+1
+ 
+  920    continue
+  910   continue
+  900  continue      
+
+!     CALCULATE VARIANCE AT DISCRETE POINTS
+       do 9000 j3= 1,N3
+         do 9100 j2= 1,N2
+          do 9200 j1= 1,N1
+           
+           il=j1+(j2-1)*nn(1)+(j3-1)*nn(2)*nn(1)
+           il=2*il-1
+           
+           if(j2.eq.5.and.j3.eq.5) then 
+
+            uvar(0,5,5) = uvar(0,5,5) + (data1(il)-umean(0,5,5))**2.0
+            vvar(0,5,5) = vvar(0,5,5) + (data2(il)-vmean(0,5,5))**2.0
+            wvar(0,5,5) = wvar(0,5,5) + (data3(il)-wmean(0,5,5))**2.0
+
+          endif
+          
+          if(j2.eq.7.and.j3.eq.7) then
+
+            uvar(0,7,7) = uvar(0,7,7) + (data1(il)-umean(0,7,7))**2.0
+            vvar(0,7,7) = vvar(0,7,7) + (data2(il)-vmean(0,7,7))**2.0
+            wvar(0,7,7) = wvar(0,7,7) + (data3(il)-wmean(0,7,7))**2.0
+
+          endif
+          
+          if(j2.eq.14.and.j3.eq.14) then
+
+           uvar(0,14,14) = uvar(0,14,14)+(data1(il)
+     &                -umean(0,14,14))**2.0
+           vvar(0,14,14) = vvar(0,14,14)+(data2(il)
+     &                -vmean(0,14,14))**2.0
+           wvar(0,14,14) = wvar(0,14,14)+(data3(il)
+     &                 -wmean(0,14,14))**2.0
+          endif
+          
+            il=il+1
+            tsim = tsim + dt
+            i=i+1
+ 
+ 9200    continue
+ 9100   continue
+ 9000  continue      
+
+!        u-component     
+          uvar(0,5,5) = uvar(0,5,5)/N1
+          uvar(0,7,7) = uvar(0,7,7)/N1
+          uvar(0,14,14) = uvar(0,14,14)/N1
+!        v-component       
+          vvar(0,5,5) = vvar(0,5,5)/N1
+          vvar(0,7,7) = vvar(0,7,7)/N1
+          vvar(0,14,14) = vvar(0,14,14)/N1
+!        w-component       
+          wvar(0,5,5) = wvar(0,5,5)/N1
+          wvar(0,7,7) = wvar(0,7,7)/N1
+          wvar(0,14,14) = wvar(0,14,14)/N1
+
+!        Correlation coefficients: Reynolds stress 
+!        uw-component      
+          uw(0,5,5) = uw(0,5,5)/sqrt(uvar(0,5,5)*wvar(0,5,5))
+          uw(0,7,7) = uw(0,7,7)/sqrt(uvar(0,7,7)*wvar(0,7,7))
+          uw(0,14,14) = uw(0,14,14)/sqrt(uvar(0,14,14)*wvar(0,14,14))
+          
+          uv(0,5,5) = uv(0,5,5)/sqrt(uvar(0,5,5)*vvar(0,5,5))
+          uv(0,7,7) = uv(0,7,7)/sqrt(uvar(0,7,7)*vvar(0,7,7))
+          uv(0,14,14) = uv(0,14,14)/sqrt(uvar(0,14,14)*vvar(0,14,14))
+          
+          vw(0,5,5) = vw(0,5,5)/sqrt(vvar(0,5,5)*wvar(0,5,5))
+          vw(0,7,7) = vw(0,7,7)/sqrt(vvar(0,7,7)*wvar(0,7,7))
+          vw(0,14,14) = vw(0,14,14)/sqrt(vvar(0,14,14)*wvar(0,14,14))
+
+!     CALCULATE MEAN AND VARIANCE OF TOTAL WIND FIELD
+
+          meantot1re = 0.0
+          meantot2re = 0.0
+          meantot3re = 0.0
+          meantot1im = 0.0
+          meantot2im = 0.0
+          meantot3im = 0.0
+
+       do 1300 j3=1,N3
+          do 1200 j2=1,N2
+            do 1100 j1=1,N1
+            il=j1+(j2-1)*nn(1)+(j3-1)*nn(2)*nn(1)
+            il=2*il-1
+!     --> Berechnung aus Realteil des komplexen FOURN Ergebnisses
+        
+            meantot1re = meantot1re + data1(il)/(N1*N2*N3)
+            meantot2re = meantot2re + data2(il)/(N1*N2*N3)
+            meantot3re = meantot3re + data3(il)/(N1*N2*N3)
+
+!     --> Berechnung Imaginrteil des komplexen FOURN Ergebnisses
+          il=il+1
+
+     
+            meantot1im = meantot1im + data1(il)/(N1*N2*N3)
+            meantot2im = meantot2im + data2(il)/(N1*N2*N3)
+            meantot3im = meantot3im + data3(il)/(N1*N2*N3)
+
+1100        continue
+1200      continue
+1300    continue
+
+         vartot1re=0.0
+         vartot2re=0.0
+         vartot3re=0.0
+         vartot1im=0.0
+         vartot2im=0.0
+         vartot3im=0.0
+       do 13200 j3=1,N3
+          do 12200 j2=1,N2
+            do 11200 j1=1,N1
+            il=j1+(j2-1)*nn(1)+(j3-1)*nn(2)*nn(1)
+            il=2*il-1
+!     --> Berechnung aus Realteil des komplexen FOURN Ergebnisses
+
+            vartot1re = vartot1re+(data1(il)-meantot1re)**2.0/(N1*N2*N3)
+            vartot2re = vartot2re+(data2(il)-meantot2re)**2.0/(N1*N2*N3)
+            vartot3re = vartot3re+(data3(il)-meantot3re)**2.0/(N1*N2*N3)
+!     --> Berechnung Imaginrteil des komplexen FOURN Ergebnisses          
+            il=il+1
+
+            vartot1im = vartot1im+(data1(il)-meantot1im)**2.0/(N1*N2*N3)
+            vartot2im = vartot2im+(data2(il)-meantot2im)**2.0/(N1*N2*N3)
+            vartot3im = vartot3im+(data3(il)-meantot3im)**2.0/(N1*N2*N3)
+
+11200       continue
+12200     continue
+13200   continue
+        
+        uwtot = 0.0
+        uvtot = 0.0
+        vwtot = 0.0
+       do 13201 j3=1,N3
+          do 12201 j2=1,N2
+            do 11201 j1=1,N1
+            il=j1+(j2-1)*nn(1)+(j3-1)*nn(2)*nn(1)
+            il=2*il-1
+!     --> Berechnung aus Realteil des komplexen FOURN Ergebnisses
+
+            uwtot = uwtot +  data1(il)*data3(il)/(N1*N2*N3)
+            uvtot = uvtot +  data1(il)*data2(il)/(N1*N2*N3)
+            vwtot = vwtot +  data2(il)*data3(il)/(N1*N2*N3)
+                     
+            il=il+1
+11201       continue
+12201     continue
+13201   continue
+
+           uwtot = uwtot/sqrt(vartot1re*vartot3re)
+           uvtot = uvtot/sqrt(vartot1re*vartot2re)
+           vwtot = vwtot/sqrt(vartot2re*vartot3re)
+
+      return
+      end
+
+
+
+
+!---------------------------------------------------------------------      
+      subroutine randomstatistics(N1,N2,N3,xn2check)
+
+!     ARRAYS
+!     - complex
+      complex xn2check(*)
+      
+!     VARIABLES
+!     - integer
+        integer*4 N1,N2,N3,i
+
+!     - real      
+        real xremean,ximmean,xgesmean,xrevar,ximvar,xgesvar 
+        real xn1re, xn1im
+      
+        xremean = 0.0
+        ximmean = 0.0
+        xgesmean = 0.0
+        xrevar = 0.0
+        ximvar = 0.0
+
+!     CALCULATE MEAN VALUE OF RANDOM VARIABLES      
+        write(11,*)
+        write(11,*)'Check random values'
+        do 5 i=1,N1
+          xn1re = cmplx(xn2check(i))
+          xn1im = aimag(xn2check(i))
+          xremean = xremean + xn1re/(N1)
+          ximmean = ximmean + xn1im/(N1)
+    5   continue
+
+!     CALCULATE VARIANCE OF RANDOM VARIABLES
+        do 10 i=1,N1
+          xn1re = cmplx(xn2check(i))
+          xn1im = aimag(xn2check(i))
+          xrevar = xrevar + ((xn1re-xremean)**2.0)/(N1)
+          ximvar = ximvar + ((xn1im-ximmean)**2.0)/(N1)       
+   10   continue
+      
+        xrevar = xrevar
+        ximvar = ximvar
+        xgesvar = xgesvar/(N1)
+        
+        write(11,*)'Statistics, random part'
+        write(11,*)'xremean     -->', xremean
+        write(11,*)'ximmean     -->', ximmean
+        write(11,*)
+        write(11,*)'xrevar      -->', xrevar
+        write(11,*)'ximvar      -->', ximvar
+        write(11,*)
+        write(11,*)'xrestd      -->', sqrt(xrevar)
+        write(11,*)'ximstd      -->', sqrt(ximvar)
+      
+      return
+      end
+
+
+!     VTK OUTPUT--------------------------------------------------
+      subroutine vtkout(N1,N2,N3,d1,d2,d3,nn,dt,data1,data2,data3,uref,
+     &                   zref,alfa) 
+      
+!     here N1 = N1out, N2 = N2out, N3 = N3out      
+      
+      integer*4 N1, N2, N3
+      integer*4 i1,i2,i3
+      integer*4 nn(*)
+      integer*8 il
+      integer*8 n
+      integer*4 iw
+      integer*8 k0,k1,k2,k3,k4, k5,k6,k7
+      
+      real*8 d1,d2,d3
+     
+      real*8 tsim,dt
+      real*8 uref,zref,alfa
+   
+      
+      real data1(*)
+      real data2(*)
+      real data3(*)
+
+      
+      
+      write(80,'(a)') '# vtk DataFile Version 2.0'
+      write(80,'(a)')'Windfield_data'
+      write(80,'(a)')'ASCII'
+      write(80,'(a)')'DATASET STRUCTURED_GRID'
+      write(80,'(a,I10,I10,I10)')'DIMENSIONS',N1,N2,N3
+
+      write(80,'(a,I10,1x,a)')'POINTS',N1*N2*N3,'float' 
+      
+      do 10 i3=1,N3
+       do 20 i2=1,N2
+        do 30 i1=1,N1
+         
+          write(80,'(3f12.4)') (i1-1)*d1, (i2-1) * d2, (i3-1) * d3       
+
+  30    continue
+ 20    continue      
+10    continue      
+      write(80,*)
+!     Cell size:       
+!      write(80,'(a,2I10)') 'CELLS',(N1-1)*(N2-1)*(N3-1),
+!     &                            9*(N1-1)*(N2-1)*(N3-1)
+
+
+!      do 11 i1=1,N1-1
+!       do 21 i2=1,N2-1
+!        do 31 i3=1,N3-1
+!          
+!          k0 = (i3 + (i2-1) * N3) + (i1-1) * N2 * N3-1
+!          k1 = k0 + 1 
+!          k2 = k0 + N2*N3
+!          k4 = (i3 + (i2-1) * N3) + (i1-1) * N2 * N3 + N3-1
+!          k3 = k4 + 1
+!          k5 = k2 + 1
+!          k6 = k2 + N3
+!          k7 = k6 + 1
+!          
+!          write(80,'(9I10)') 8, k0,k1,k2,k5,k4,k3,k6,k7       
+!          
+!  31    continue
+! 21    continue      
+!11    continue      
+      
+      
+!      iw=1
+!      write(80,*)
+!!     Number of Cell types       
+!      write(80,'(a,I10)')'CELL_TYPES',(N1-1)*(N2-1)*(N3-1)
+!!     Specify of Cell type: VTK_VERTEX (=1)    
+!      do 111 i1=1,N1-1
+!       do 121 i2=1,N2-1
+!        do 131 i3=1,N3-1
+!         write(80,'(a)')'11'
+!  131    continue
+! 121    continue  
+!         if (i1.eq.iw*10) then
+!           write(*,*) '....',i1,'of',N1,'points written'
+!           write(58,*) '....',i1,'of',N1,'points written'
+!            iw=iw+1
+!         endif     
+!    
+!111    continue      
+      
+      tsim=dt
+!     write Point or Cell data    
+      write(80,'(a,I10)')'POINT_DATA', N1*N2*N3
+      write(80,'(a,1x,a,1x,a)')'VECTORS', 'vectors', 'float'
+      n = 1
+      iw = 1
+        do 1444 j3=1,N3
+         do 1555 j2=1,N2
+          do 1666 j1=1,N1
+
+!!          Interpolation at z=0 between u(d3/2) and -u(d3/2)                        
+!             if (j3.eq.0) then
+!             il=j1+(j2-1)*nn(1)+(j3-1+1)*nn(2)*nn(1)
+!             il=2*il-1
+!!              
+!!       write(80,'(3f12.6)',rec=n) -data1(il),-data2(il),-data3(il)
+!              
+!             else 
+              il=j1+(j2-1)*nn(1)+(j3-1)*nn(2)*nn(1)
+              il=2*il-1
+
+!              write(80,'(3f12.6)') uref*((j3-1)*d3/zref)**alfa+data1(il)
+!     &                            ,data2(il),data3(il)
+!       nur Fluktuationen
+              write(80,'(3f12.6)') data1(il),data2(il),data3(il)
+
+!             endif
+           
+             n = n + 1
+             
+1666       continue
+1555     continue
+         tsim = tsim + dt
+         if (j1.eq.iw*10) then
+            write(*,*) '....',j1*dt,'of',N1*dt,   
+     &                                               'sec written'
+            write(58,*) '....',j1*dt,'of',N1*dt,   
+     &                                               'sec written'
+            iw=iw+1
+         endif     
+1444   continue          
+      
+      return
+      end
+
+!     MEANWIND inflow --------------------------------------------------
+      subroutine meanwind(N1,N2,N3,d1,d2,d3,nn,uref,zref,alfa,xinlet,
+     &                    yinlet,zinlet) 
+      
+!     here N1 = N1out, N2 = N2out, N3 = N3out      
+      
+      integer*4 N1, N2, N3
+      integer*4 i1,i2,i3
+      integer*4 nn(*)
+      integer*8 il
+      integer*8 n
+      integer*4 iw
+!      integer*8 k0,k1,k2,k3,k4, k5,k6,k7
+      
+      real*8 d1,d2,d3
+     
+!      real*8 tsim,dt
+      real*8 uref,zref,alfa,xinlet,yinlet,zinlet
+   
+!      write(88,'(a)') '# vtk DataFile Version 2.0'
+!      write(88,'(a)')'Windfield_data'
+!      write(88,'(a)')'ASCII'
+!      write(88,'(a)')'DATASET STRUCTURED_GRID'
+!      write(88,'(a,I10,I10,I10)')'DIMENSIONS',N1,N2,N3
+       write(88,'(a)') 'FoamFile'
+       write(88,'(a)') '{'
+       write(88,'(a)') '   version     2.0;'
+       write(88,'(a)') '   format      ascii;'
+       write(88,'(a)') '   class       vectorField;'
+       write(88,'(a)') '   object      points;'
+       write(88,'(a)') '}'
+
+!      write(88,'(a,I10,1x,a)')'POINTS',N1*N2*N3,'float' 
+       write(88,'(a)') '('     
+      do 10 i3=1,N3
+       do 20 i2=1,N2
+!        do 30 i1=1,N1       
+!          write(80,'(3f12.4)') (i1-1)*d1, (i2-1) * d2, (i3-1) * d3       
+           write(88,'(a,3f12.6,a)') '(',xinlet, yinlet + (i2-1) * d2,
+     &                                          zinlet + (i3-1) * d3,')'
+!  30    continue
+ 20    continue      
+10    continue      
+      write(88,*)
+      write(88,'(a)') ')'
+      
+!     write Point or Cell data    
+!      write(99,'(a,I10)')'POINT_DATA', N1*N2*N3
+!      write(99,'(a,1x,a,1x,a)')'VECTORS', 'vectors', 'float'
+        write(99,'(a)') 'FoamFile'
+        write(99,'(a)') '{'
+        write(99,'(a)') '   version     2.0;'
+        write(99,'(a)') '   format      ascii;'
+        write(99,'(a)') '   class       vectorAverageField;'
+        write(99,'(a)') '   object      values;'
+        write(99,'(a)') '}'
+        write(99,'(a)') '// Average'
+        write(99,'(a)') '(0 0 0)'
+
+        write(99,'(a)') '// Data on points'
+        write(99,'(I10)') N2*N3
+        write(99,'(a)') '('
+      
+      
+        do 1400 j3=1,N3
+         do 1500 j2=1,N2
+!          do 1600 j1=1,N1             
+           write(99,'(a,3f12.4,a)') '(',uref*((j3-1)*d3/zref)**alfa,0.0,
+     &                                0.0,')'           
+!1600      continue
+1500     continue
+1400   continue          
+      write(99,'(a)') ')'      
+      return
+      end
+      
+!-----------------------------------------------------------------
+! ----------------------------------------------------------------------
+! -- sub. gen : produces random values with null mean and unit variance-
+! ----------------------------------------------------------------------
+      subroutine gen(s,am,v)
+!     implicit real*16 (a-h,o-z)
+      implicit real*8 (a-h,o-z)
+!
+      v=0.d0
+      do 1 l=1,12
+      call randr(0.d0,1.d0,yy)
+    1 v=v+yy
+      v=(v- 6.d0)*s+am
+      return
+      end
+      
+!-------------------------------------------------      
+      subroutine randr(za,ze,z)
+      implicit real*8 (a-h,o-z)
+      common /random/ irand0
+!
+! berechnet eine zufallszahl (real) im bereich von za bis ze
+! gleichverteilt
+!
+!      call randu(irand0,iy,yfl)
+!      irand0=iy
+!
+!      z=(ze-za)*yfl+za
+!
+      z=rand(0)
+      return
+      end
+      
+! ------------------------------------------------      
+      subroutine init_rand
+      implicit real*8 (a-h,o-z)
+      common /random/ irand0
+      
+      real*8 timevalue
+      integer flag
+      real*4 base
+      integer*8 timeinteger
+!
+! initializing random numbers generator (unix-version)
+! nderung AMI 4.10.05 Compilieren fr Windows
+!      call seedtime(irand0)
+! ersetzt durch 
+!      irand0= int(secnds(.0))
+      
+!     ---Kontrolle des Zufallsgenerators
+      
+      
+!      write(11,*)'Zahl aus Time'
+
+      base = 0.0
+      timevalue = secnds(base)
+!      write(11,'(f12.6)') timevalue
+      timeinteger= idint(timevalue)
+!      write(11,'(i12)') timeinteger
+      
+!      write(11,*)
+!      write(11,*)'Kontrolle des Zufallsgenerators'
+!      write(11,*)'Initialisierung'
+      flag=timeinteger
+      
+      random=rand(flag)
+!      write(11,'(f12.6)') random
+      
+      
+      return
+      end
+            
+!-------------------------------------------------------------
+
+      FUNCTION hypgeo(a,b,c,z)
+      COMPLEX hypgeo,a,b,c,z
+      REAL EPS
+      PARAMETER (EPS=1.e-6)
+CU    USES bsstep,hypdrv,hypser,odeint
+      INTEGER kmax,nbad,nok
+      EXTERNAL bsstep,hypdrv
+      COMPLEX z0,dz,aa,bb,cc,y(2)
+      COMMON /hypg/ aa,bb,cc,z0,dz
+      COMMON /path/ kmax
+      kmax=0
+      if (real(z)**2+aimag(z)**2.le.0.25) then
+        call hypser(a,b,c,z,hypgeo,y(2))
+        return
+      else if (real(z).lt.0.) then
+        z0=cmplx(-0.5,0.)
+      else if (real(z).le.1.0) then
+        z0=cmplx(0.5,0.)
+      else
+        z0=cmplx(0.,sign(0.5,aimag(z)))
+      endif
+      aa=a
+      bb=b
+      cc=c
+      dz=z-z0
+      call hypser(aa,bb,cc,z0,y(1),y(2))
+      call odeint(y,4,0.,1.,EPS,.1,.0001,nok,nbad,hypdrv,bsstep)
+      hypgeo=y(1)
+      return
+      END
+
+!------------------------------------------------------------
+      SUBROUTINE hypser(a,b,c,z,series,deriv)
+      INTEGER n
+      COMPLEX a,b,c,z,series,deriv,aa,bb,cc,fac,temp
+      deriv=cmplx(0.,0.)
+      fac=cmplx(1.,0.)
+      temp=fac
+      aa=a
+      bb=b
+      cc=c
+      do 11 n=1,1000
+        fac=((aa*bb)/cc)*fac
+        deriv=deriv+fac
+        fac=fac*z/n
+        series=temp+fac
+        if (series.eq.temp) return
+        temp=series
+        aa=aa+1.
+        bb=bb+1.
+        cc=cc+1.
+11    continue
+      pause 'convergence failure in hypser'
+      END
+!------------------------------------------------------------
+      SUBROUTINE odeint(ystart,nvar,x1,x2,eps,h1,hmin,nok,nbad,derivs,
+     *rkqs)
+      INTEGER nbad,nok,nvar,KMAXX,MAXSTP,NMAX
+      REAL eps,h1,hmin,x1,x2,ystart(nvar),TINY
+      EXTERNAL derivs,rkqs
+      PARAMETER (MAXSTP=10000,NMAX=50,KMAXX=200,TINY=1.e-30)
+      INTEGER i,kmax,kount,nstp
+      REAL dxsav,h,hdid,hnext,x,xsav,dydx(NMAX),xp(KMAXX),y(NMAX),
+     *yp(NMAX,KMAXX),yscal(NMAX)
+      COMMON /path/ kmax,kount,dxsav,xp,yp
+      x=x1
+      h=sign(h1,x2-x1)
+      nok=0
+      nbad=0
+      kount=0
+      do 11 i=1,nvar
+        y(i)=ystart(i)
+11    continue
+      if (kmax.gt.0) xsav=x-2.*dxsav
+      do 16 nstp=1,MAXSTP
+        call derivs(x,y,dydx)
+        do 12 i=1,nvar
+          yscal(i)=abs(y(i))+abs(h*dydx(i))+TINY
+12      continue
+        if(kmax.gt.0)then
+          if(abs(x-xsav).gt.abs(dxsav)) then
+            if(kount.lt.kmax-1)then
+              kount=kount+1
+              xp(kount)=x
+              do 13 i=1,nvar
+                yp(i,kount)=y(i)
+13            continue
+              xsav=x
+            endif
+          endif
+        endif
+        if((x+h-x2)*(x+h-x1).gt.0.) h=x2-x
+        call rkqs(y,dydx,nvar,x,h,eps,yscal,hdid,hnext,derivs)
+        if(hdid.eq.h)then
+          nok=nok+1
+        else
+          nbad=nbad+1
+        endif
+        if((x-x2)*(x2-x1).ge.0.)then
+          do 14 i=1,nvar
+            ystart(i)=y(i)
+14        continue
+          if(kmax.ne.0)then
+            kount=kount+1
+            xp(kount)=x
+            do 15 i=1,nvar
+              yp(i,kount)=y(i)
+15          continue
+          endif
+          return
+        endif
+        if(abs(hnext).lt.hmin) pause
+     *'stepsize smaller than minimum in odeint'
+        h=hnext
+16    continue
+      pause 'too many steps in odeint'
+      return
+      END
+!----------------------------------------------------------------
+      SUBROUTINE bsstep(y,dydx,nv,x,htry,eps,yscal,hdid,hnext,derivs)
+      INTEGER nv,NMAX,KMAXX,IMAX
+      REAL eps,hdid,hnext,htry,x,dydx(nv),y(nv),yscal(nv),SAFE1,SAFE2,
+     *REDMAX,REDMIN,TINY,SCALMX
+      PARAMETER (NMAX=50,KMAXX=8,IMAX=KMAXX+1,SAFE1=.25,SAFE2=.7,
+     *REDMAX=1.e-5,REDMIN=.7,TINY=1.e-30,SCALMX=.1)
+CU    USES derivs,mmid,pzextr
+      INTEGER i,iq,k,kk,km,kmax,kopt,nseq(IMAX)
+      REAL eps1,epsold,errmax,fact,h,red,scale,work,wrkmin,xest,xnew,
+     *a(IMAX),alf(KMAXX,KMAXX),err(KMAXX),yerr(NMAX),ysav(NMAX),
+     *yseq(NMAX)
+      LOGICAL first,reduct
+      SAVE a,alf,epsold,first,kmax,kopt,nseq,xnew
+      EXTERNAL derivs
+      DATA first/.true./,epsold/-1./
+      DATA nseq /2,4,6,8,10,12,14,16,18/
+      if(eps.ne.epsold)then
+        hnext=-1.e29
+        xnew=-1.e29
+        eps1=SAFE1*eps
+        a(1)=nseq(1)+1
+        do 11 k=1,KMAXX
+          a(k+1)=a(k)+nseq(k+1)
+11      continue
+        do 13 iq=2,KMAXX
+          do 12 k=1,iq-1
+            alf(k,iq)=eps1**((a(k+1)-a(iq+1))/((a(iq+1)-a(1)+1.)*(2*k+
+     *1)))
+12        continue
+13      continue
+        epsold=eps
+        do 14 kopt=2,KMAXX-1
+          if(a(kopt+1).gt.a(kopt)*alf(kopt-1,kopt))goto 1
+14      continue
+1       kmax=kopt
+      endif
+      h=htry
+      do 15 i=1,nv
+        ysav(i)=y(i)
+15    continue
+      if(h.ne.hnext.or.x.ne.xnew)then
+        first=.true.
+        kopt=kmax
+      endif
+      reduct=.false.
+2     do 17 k=1,kmax
+        xnew=x+h
+        if(xnew.eq.x)pause 'step size underflow in bsstep'
+        call mmid(ysav,dydx,nv,x,h,nseq(k),yseq,derivs)
+        xest=(h/nseq(k))**2
+        call pzextr(k,xest,yseq,y,yerr,nv)
+        if(k.ne.1)then
+          errmax=TINY
+          do 16 i=1,nv
+            errmax=max(errmax,abs(yerr(i)/yscal(i)))
+16        continue
+          errmax=errmax/eps
+          km=k-1
+          err(km)=(errmax/SAFE1)**(1./(2*km+1))
+        endif
+        if(k.ne.1.and.(k.ge.kopt-1.or.first))then
+          if(errmax.lt.1.)goto 4
+          if(k.eq.kmax.or.k.eq.kopt+1)then
+            red=SAFE2/err(km)
+            goto 3
+          else if(k.eq.kopt)then
+            if(alf(kopt-1,kopt).lt.err(km))then
+              red=1./err(km)
+              goto 3
+            endif
+          else if(kopt.eq.kmax)then
+            if(alf(km,kmax-1).lt.err(km))then
+              red=alf(km,kmax-1)*SAFE2/err(km)
+              goto 3
+            endif
+          else if(alf(km,kopt).lt.err(km))then
+            red=alf(km,kopt-1)/err(km)
+            goto 3
+          endif
+        endif
+17    continue
+3     red=min(red,REDMIN)
+      red=max(red,REDMAX)
+      h=h*red
+      reduct=.true.
+      goto 2
+4     x=xnew
+      hdid=h
+      first=.false.
+      wrkmin=1.e35
+      do 18 kk=1,km
+        fact=max(err(kk),SCALMX)
+        work=fact*a(kk+1)
+        if(work.lt.wrkmin)then
+          scale=fact
+          wrkmin=work
+          kopt=kk+1
+        endif
+18    continue
+      hnext=h/scale
+      if(kopt.ge.k.and.kopt.ne.kmax.and..not.reduct)then
+        fact=max(scale/alf(kopt-1,kopt),SCALMX)
+        if(a(kopt+1)*fact.le.wrkmin)then
+          hnext=h/fact
+          kopt=kopt+1
+        endif
+      endif
+      return
+      END
+!------------------------------------------------------------------
+      SUBROUTINE hypdrv(s,y,dyds)
+      REAL s
+      COMPLEX y(2),dyds(2),aa,bb,cc,z0,dz,z
+      COMMON /hypg/ aa,bb,cc,z0,dz
+      z=z0+s*dz
+      dyds(1)=y(2)*dz
+      dyds(2)=((aa*bb)*y(1)-(cc-((aa+bb)+1.)*z)*y(2))*dz/(z*(1.-z))
+      return
+      END
+!-----------------------------------------------------------------
+
+      SUBROUTINE mmid(y,dydx,nvar,xs,htot,nstep,yout,derivs)
+      INTEGER nstep,nvar,NMAX
+      REAL htot,xs,dydx(nvar),y(nvar),yout(nvar)
+      EXTERNAL derivs
+      PARAMETER (NMAX=50)
+      INTEGER i,n
+      REAL h,h2,swap,x,ym(NMAX),yn(NMAX)
+      h=htot/nstep
+      do 11 i=1,nvar
+        ym(i)=y(i)
+        yn(i)=y(i)+h*dydx(i)
+11    continue
+      x=xs+h
+      call derivs(x,yn,yout)
+      h2=2.*h
+      do 13 n=2,nstep
+        do 12 i=1,nvar
+          swap=ym(i)+h2*yout(i)
+          ym(i)=yn(i)
+          yn(i)=swap
+12      continue
+        x=x+h
+        call derivs(x,yn,yout)
+13    continue
+      do 14 i=1,nvar
+        yout(i)=0.5*(ym(i)+yn(i)+h*yout(i))
+14    continue
+      return
+      END
+!--------------------------------------------------------------
+
+      SUBROUTINE pzextr(iest,xest,yest,yz,dy,nv)
+      INTEGER iest,nv,IMAX,NMAX
+      REAL xest,dy(nv),yest(nv),yz(nv)
+      PARAMETER (IMAX=13,NMAX=50)
+      INTEGER j,k1
+      REAL delta,f1,f2,q,d(NMAX),qcol(NMAX,IMAX),x(IMAX)
+      SAVE qcol,x
+      x(iest)=xest
+      do 11 j=1,nv
+        dy(j)=yest(j)
+        yz(j)=yest(j)
+11    continue
+      if(iest.eq.1) then
+        do 12 j=1,nv
+          qcol(j,1)=yest(j)
+12      continue
+      else
+        do 13 j=1,nv
+          d(j)=yest(j)
+13      continue
+        do 15 k1=1,iest-1
+          delta=1./(x(iest-k1)-xest)
+          f1=xest*delta
+          f2=x(iest-k1)*delta
+          do 14 j=1,nv
+            q=qcol(j,k1)
+            qcol(j,k1)=dy(j)
+            delta=d(j)-q
+            dy(j)=f1*delta
+            d(j)=f2*delta
+            yz(j)=yz(j)+dy(j)
+14        continue
+15      continue
+        do 16 j=1,nv
+          qcol(j,iest)=dy(j)
+16      continue
+      endif
+      return
+      END
+!------------------------------------------------------------------
+
+      SUBROUTINE fourn(data,nn,ndim,isign)
+      INTEGER*4 isign,ndim,nn(ndim)
+      REAL data(*)
+      INTEGER*4 i1,i2,i2rev,i3,i3rev,ibit,idim,ifp1,ifp2,ip1,ip2,ip3,k1,
+     *k2,n,nprev,nrem,ntot
+      REAL tempi,tempr
+      DOUBLE PRECISION theta,wi,wpi,wpr,wr,wtemp
+      ntot=1
+      do 11 idim=1,ndim
+        ntot=ntot*nn(idim)
+11    continue
+      nprev=1
+      do 18 idim=1,ndim
+        n=nn(idim)
+        nrem=ntot/(n*nprev)
+        ip1=2*nprev
+        ip2=ip1*n
+        ip3=ip2*nrem
+        i2rev=1
+        do 14 i2=1,ip2,ip1
+          if(i2.lt.i2rev)then
+            do 13 i1=i2,i2+ip1-2,2
+              do 12 i3=i1,ip3,ip2
+                i3rev=i2rev+i3-i2
+                tempr=data(i3)
+                tempi=data(i3+1)
+                data(i3)=data(i3rev)
+                data(i3+1)=data(i3rev+1)
+                data(i3rev)=tempr
+                data(i3rev+1)=tempi
+12            continue
+13          continue
+          endif
+          ibit=ip2/2
+1         if ((ibit.ge.ip1).and.(i2rev.gt.ibit)) then
+            i2rev=i2rev-ibit
+            ibit=ibit/2
+          goto 1
+          endif
+          i2rev=i2rev+ibit
+14      continue
+        ifp1=ip1
+2       if(ifp1.lt.ip2)then
+          ifp2=2*ifp1
+          theta=isign*6.28318530717959d0/(ifp2/ip1)
+          wpr=-2.d0*sin(0.5d0*theta)**2
+          wpi=sin(theta)
+          wr=1.d0
+          wi=0.d0
+          do 17 i3=1,ifp1,ip1
+            do 16 i1=i3,i3+ip1-2,2
+              do 15 i2=i1,ip3,ifp2
+                k1=i2
+                k2=k1+ifp1
+                tempr=sngl(wr)*data(k2)-sngl(wi)*data(k2+1)
+                tempi=sngl(wr)*data(k2+1)+sngl(wi)*data(k2)
+                data(k2)=data(k1)-tempr
+                data(k2+1)=data(k1+1)-tempi
+                data(k1)=data(k1)+tempr
+                data(k1+1)=data(k1+1)+tempi
+15            continue
+16          continue
+            wtemp=wr
+            wr=wr*wpr-wi*wpi+wr
+            wi=wi*wpr+wtemp*wpi+wi
+17        continue
+          ifp1=ifp2
+        goto 2
+        endif
+        nprev=n*nprev
+18    continue
+      return
+      END
+!----------------------------------------------------------------                                                            

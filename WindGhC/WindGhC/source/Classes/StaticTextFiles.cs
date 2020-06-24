@@ -24,6 +24,11 @@ namespace WindGhC
             return TextFilesResources.mesh;
         }
 
+        public static string Get3c3dFile()
+        {
+            return TextFilesResources._3c3d_FOURN_structured;
+        }
+
         public static string GetFVSchemes()
         {
             return TextFilesResources.fvSchemes;
@@ -352,7 +357,7 @@ namespace WindGhC
         }
 
         public static string GetForcesFunction(DataTree<Brep> iGeometry)
-        {           
+        {
             string forcesString = "";
 
             for (int i = 6; i < iGeometry.Paths.Count; i++)
@@ -399,9 +404,9 @@ namespace WindGhC
 
             iGeometry.Flatten();
             List<Brep> flattenedList = iGeometry.Branch(iGeometry.Path(0));
-            
+
             string geomXCoord = VolumeMassProperties.Compute(flattenedList.GetRange(6, flattenedList.Count - 6)).Centroid.X.ToString();
-            string geomYCoord = VolumeMassProperties.Compute(flattenedList.GetRange(6, flattenedList.Count - 6)).Centroid.Y.ToString();          
+            string geomYCoord = VolumeMassProperties.Compute(flattenedList.GetRange(6, flattenedList.Count - 6)).Centroid.Y.ToString();
             string geomCentCoord = geomXCoord + " " + geomYCoord + " 0.0";
 
             #region shellString       
@@ -446,7 +451,8 @@ namespace WindGhC
             #endregion
 
 
-            return string.Format(shellString,forcesString,brepNames,geomCentCoord);
+            return string.Format(shellString, forcesString, brepNames, geomCentCoord);
         }
+   
     }
 }
