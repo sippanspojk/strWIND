@@ -15,13 +15,147 @@ namespace WindGhC
     public static class StaticTextFiles
     {
 
-        public static string GetFoam()
-        {
-            return TextFilesResources.foam;
+        public static string GetFoam(List<Brep> iGeometry)
+        {            
+
+            string jobName = iGeometry[6].GetUserString("RotAngle") + "deg_Solve";
+
+            #region foamString
+            string foamString =
+                "#!/bin/sh\n" +
+                "\n" +
+                "# PBS -j oe\n" +
+                "# PBS -N " + jobName  + "\n" +
+                "# PBS -l nodes=5:ppn=6\n" +
+                "# PBS -l walltime=1000000:00:00\n" +
+                "###output files\n" +
+                "###PBS -e err.log\n" +
+                "###PBS -o out.log\n" +
+                "###Mail to user\n" +
+                "# PBS -m ae\n" +
+                "# PBS -M bidier@str-ucture.com\n" +
+                "\n" +
+                "cd $PBS_O_WORKDIR\n" +
+                "\n" +
+                "LOGFILE = \"${PBS_O_WORKDIR}/out.log\"\n" +
+                "ERRFILE = \"${PBS_O_WORKDIR}/err.log\"\n" +
+                "NODEFILE = \"${PBS_O_WORKDIR}/nodes.log\"\n" +
+                "\n" +
+                "cat $PBS_NODEFILE >$NODEFILE\n" +
+                "\n" +
+                "export NUM_CPUS = 30\n" +
+                "export NUM_NODES = 5\n" +
+                "\n" +
+                "#rm -r processor*\n" +
+                "\n" +
+                "# reconfigure decomposition method\n" +
+                "\n" +
+                "sed - i \"s/method ptscotch/method scotch/g\" system / decomposeParDict\n" +
+                "\n" +
+                "#\n" +
+                "# deompose based on pimpleDyMFsiFoam\n" +
+                "#\n" +
+                "\n" +
+                "sed - i \"s/pimpleDyMFoam/pimpleDyMFsiFoam/g\" system / controlDict\n" +
+                "echo \"Decpompose Start\" > timeStamp\n" +
+                "date >> timeStamp\n" +
+                "decomposePar >>$LOGFILE 2 > &1\n" +
+                "echo \"Decpompose end\" >> timeStamp\n" +
+                "date >> timeStamp\n" +
+                "sed - i \"s/pimpleDyMFsiFoam/pimpleFoam/g\" system / controlDict\n" +
+                "\n" +
+                "#\n" +
+                "# now, run the solver\n" +
+                "#\n" +
+                "\n" +
+                "echo \"solver start\" >> timeStamp\n" +
+                "date >> timeStamp\n" +
+                "mpirun - hostfile $PBS_NODEFILE - n $NUM_CPUS pimpleFoam -parallel >>$LOGFILE 2 > &1 && \\\n" +
+                "echo \"solver end\" >> timeStamp\n" +
+                "date >> timeStamp\n" +
+                "\n" +
+                "#echo \"reconstruct start\" >> timeStamp\n" +
+                "#date >> timeStamp\n" +
+                "#reconstructPar >>$LOGFILE 2>&1 && \\\n" +
+                "#echo \"reconstruct end\" >> timeStamp\n" +
+                "#date >> timeStamp\n" +
+                "\n" +
+                "echo \" **** FOAM JOB FINISHED *****\" >>$LOGFILE\n";
+            #endregion
+
+            return foamString;
+
         }
-        public static string GetMesh()
+        public static string GetMesh(List<Brep> iGeometry)
         {
-            return TextFilesResources.mesh;
+
+            string jobName = iGeometry[6].GetUserString("RotAngle") + "deg_Mesh";
+
+            #region meshString
+            string meshString =
+                "#!/bin/sh\n" +
+                "\n" +
+                "# PBS -j oe\n" +
+                "# PBS -N " + jobName + "\n" +
+                "# PBS -l nodes=5:ppn=6\n" +
+                "# PBS -l walltime=1000000:00:00\n" +
+                "###output files\n" +
+                "###PBS -e err.log\n" +
+                "###PBS -o out.log\n" +
+                "###Mail to user\n" +
+                "# PBS -m ae\n" +
+                "# PBS -M andersson@str-ucture.com\n" +
+                "\n" +
+                "cd $PBS_O_WORKDIR\n" +
+                "\n" +
+                "LOGFILE = \"${PBS_O_WORKDIR}/out.log\"\n" +
+                "ERRFILE = \"${PBS_O_WORKDIR}/err.log\"\n" +
+                "NODEFILE = \"${PBS_O_WORKDIR}/nodes.log\"\n" +
+                "\n" +
+                "cat $PBS_NODEFILE >$NODEFILE\n" +
+                "\n" +
+                "export NUM_CPUS = 30\n" +
+                "export NUM_NODES = 5\n" +
+                "\n" +
+                "#rm -r processor*\n" +
+                "\n" +
+                "#\n" +
+                "# run blockMesh\n" +
+                "# \n" +
+                "\n" +
+                "blockMesh\n" +
+                "\n" +
+                "#\n" +
+                "# deompose based on pimpleDyMFsiFoam\n" +
+                "#\n" +
+                "\n" +
+                "sed - i \"s/pimpleDyMFoam/pimpleDyMFsiFoam/g\" system / controlDict\n" +
+                "echo \"Decpompose Start\" > timeStamp\n" +
+                "date >> timeStamp\n" +
+                "decomposePar >>$LOGFILE 2 > &1\n" +
+                "echo \"Decpompose end\" >> timeStamp\n" +
+                "date >> timeStamp\n" +
+                "sed - i \"s/pimpleDyMFsiFoam/pimpleFoam/g\" system / controlDict\n" +
+                "\n" +
+                "#\n" +
+                "# now, run the mesh\n" +
+                "#\n" +
+                "\n" +
+                "echo \"mesh start\" >> timeStamp\n" +
+                "date >> timeStamp\n" +
+                "mpirun - np $NUM_CPUS - hostfile $PBS_NODEFILE - mca pml ucx snappyHexMesh - parallel >>$LOGFILE 2 > &1 && \\\n" +
+                "echo \"mesh end\" >> timeStamp\n" +
+                "date >> timeStamp\n" +
+                "echo \"reconstruct start\" >> timeStamp\n" +
+                "date >> timeStamp\n" +
+                "reconstructParMesh >>$LOGFILE 2 > &1 && \\\n" +
+                "echo \"reconstruct end\" >> timeStamp\n" +
+                "date >> timeStamp\n" +
+                "\n" +
+                "echo \" **** FOAM JOB ENDS *****\" >>$LOGFILE";
+            #endregion
+
+            return meshString;
         }
 
         public static string Get3c3dFile()

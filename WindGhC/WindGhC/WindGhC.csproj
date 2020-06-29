@@ -118,12 +118,6 @@
     <None Include="source\Resources\turbulenceProperties.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="source\Resources\foam.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="source\Resources\mesh.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="source\Resources\0.png" />
   </ItemGroup>
   <ItemGroup>

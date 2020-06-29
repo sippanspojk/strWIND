@@ -101,6 +101,7 @@ namespace WindGhC
             else
             {
                 fileLocation = this.OnPingDocument().FilePath;
+
                 if (fileLocation == null)
                     AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Either save the GH definition or manually assign a path to write to.");
                 else
@@ -154,8 +155,8 @@ namespace WindGhC
                 foreach (GH_Path path in convertedGeomTree.Paths)
                     tempGeomList.Add(convertedGeomTree.Branch(path)[0]);
 
-                File.WriteAllText(System.IO.Path.Combine(openFoamFolder, "foam.job"), StaticTextFiles.GetFoam());
-                File.WriteAllText(System.IO.Path.Combine(openFoamFolder, "mesh.job"), StaticTextFiles.GetMesh());
+                File.WriteAllText(System.IO.Path.Combine(openFoamFolder, "foam.job"), StaticTextFiles.GetFoam(tempGeomList));
+                File.WriteAllText(System.IO.Path.Combine(openFoamFolder, "mesh.job"), StaticTextFiles.GetMesh(tempGeomList));
 
                 File.WriteAllText(System.IO.Path.Combine(constantPath, "RASProperties"), StaticTextFiles.GetRASProperties());
                 File.WriteAllText(System.IO.Path.Combine(constantPath, "transportProperties"), StaticTextFiles.GetTransportProperties());
